@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="max-age=604800">
+<title>Scanner Badge QR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@400;700;900&display=swap');
+:root {
+  --ink: #1a1410; --paper: #f5f0e8; --cream: #ede7d5; --gold: #c4922a;
+  --gold-light: #e8b84b; --green: #1e7b4b; --red: #c0392b;
+  --border: #c8b99a; --muted: #8a7b65; --white: #fdfaf4;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--paper); color: var(--ink); font-family: 'Fraunces', serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+/* SETUP */
+#setupScreen { flex:1; display:flex; flex-direction:column; padding:20px; gap:16px; max-width:480px; margin:0 auto; width:100%; }
+.setup-header { text-align:center; padding:20px 0 10px; }
+.setup-header h1 { font-size:1.6rem; font-weight:900; }
+.setup-header p { font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); margin-top:6px; }
+
+.card { background:var(--white); border:1.5px solid var(--border); border-radius:6px; overflow:hidden; }
+.card-header { padding:10px 16px; background:var(--ink); color:var(--gold-light); font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase; }
+.card-body { padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+
+.field { display:flex; flex-direction:column; gap:4px; }
+.field label { font-family:'DM Mono',monospace; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+.field input { padding:10px 12px; border:1.5px solid var(--border); border-radius:4px; background:var(--paper); font-family:'DM Mono',monospace; font-size:0.8rem; color:var(--ink); outline:none; width:100%; }
+.field input:focus { border-color:var(--gold); }
+.hint { font-family:'DM Mono',monospace; font-size:0.63rem; color:var(--muted); }
+.key-field .field label { color:var(--gold); }
+.key-field .field input { border-color:var(--gold); }
+
+.upload-area { border:2px dashed var(--border); border-radius:6px; padding:20px; text-align:center; cursor:pointer; transition:all 0.15s; background:var(--paper); }
+.upload-area:hover { border-color:var(--green); background:#f0f7f3; }
+.upload-area.loaded { border-color:var(--green); background:#f0f7f3; border-style:solid; }
+.upload-icon { font-size:2rem; margin-bottom:6px; }
+.upload-label { font-family:'DM Mono',monospace; font-size:0.75rem; color:var(--muted); }
+.upload-label strong { color:var(--green); display:block; margin-top:4px; }
+
+.status-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:20px; font-family:'DM Mono',monospace; font-size:0.68rem; }
+.status-chip.ok { background:#e8f5ee; color:var(--green); border:1px solid var(--green); }
+.status-chip.err { background:#fdecea; color:var(--red); border:1px solid var(--red); }
+
+.btn { padding:14px; border:none; border-radius:4px; cursor:pointer; font-family:'DM Mono',monospace; font-weight:500; font-size:0.82rem; letter-spacing:0.08em; text-transform:uppercase; transition:all 0.15s; width:100%; }
+.btn-primary { background:var(--ink); color:var(--gold-light); }
+.btn-primary:hover { background:#2d2620; }
+
+/* SCAN SCREEN */
+#scanScreen { flex:1; display:none; flex-direction:column; }
+.scan-header { background:var(--ink); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; }
+.scan-header span { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--gold-light); }
+.scan-header button { background:transparent; border:1px solid var(--muted); color:var(--muted); padding:4px 10px; border-radius:4px; font-family:'DM Mono',monospace; font-size:0.65rem; cursor:pointer; letter-spacing:0.05em; text-transform:uppercase; }
+.scan-header button:hover { border-color:var(--red); color:var(--red); }
+
+/* html5-qrcode container */
+#qr-reader { width:100% !important; border:none !important; background:#000; }
+#qr-reader video { width:100% !important; object-fit:cover; }
+#qr-reader img { display:none !important; }
+#qr-reader__scan_region { position:relative; }
+/* Nascondi tutti i controlli di default della libreria */
+#qr-reader__header_message,
+#qr-reader__status_span,
+#qr-reader__camera_selection,
+#qr-reader__camera_permission_button,
+#qr-reader__dashboard_section_csr span,
+#qr-reader__dashboard_section_fsr,
+#qr-reader__filescan_input,
+#qr-reader__dashboard { display:none !important; }
+#qr-reader__dashboard_section_csr button { display:none !important; }
+
+.status-bar { padding:10px 16px; background:var(--white); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+.dot.live { background:var(--green); animation:blink 1s ease infinite; }
+.dot.ok { background:var(--green); }
+.dot.fail { background:var(--red); }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+#statusMsg { font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--muted); flex:1; }
+
+/* Risultato */
+#lastResult { display:none; margin:12px 16px; background:var(--white); border:1.5px solid var(--border); border-radius:6px; overflow:hidden; animation:slideIn 0.2s ease; }
+.btn-scan-again {
+  width:100%; padding:14px; border:none; border-top:1.5px solid var(--border);
+  background:var(--ink); color:var(--gold-light);
+  font-family:'DM Mono',monospace; font-size:0.82rem; font-weight:500;
+  letter-spacing:0.08em; text-transform:uppercase; cursor:pointer;
+  transition:all 0.15s;
+}
+.btn-scan-again:hover { background:#2d2620; }
+.btn-scan-again:active { transform:scale(0.98); }
+@keyframes slideIn { from{opacity:0;transform:translateY(-6px);} to{opacity:1;transform:translateY(0);} }
+.lr-row { display:flex; align-items:center; gap:12px; padding:14px 16px; }
+.lr-icon { font-size:2.5rem; flex-shrink:0; }
+.lr-name { font-weight:900; font-size:1.1rem; line-height:1.2; }
+.lr-name.ok { color:var(--green); }
+.lr-name.fail { color:var(--red); }
+.lr-name.dup { color:var(--gold); }
+.lr-sub { font-family:'DM Mono',monospace; font-size:0.72rem; font-weight:700; margin-top:3px; }
+.lr-sub.ok { color:var(--green); }
+.lr-sub.fail { color:var(--red); }
+.lr-sub.dup { color:var(--gold); }
+.lr-detail { font-family:'DM Mono',monospace; font-size:0.65rem; color:var(--muted); margin-top:3px; }
+
+/* Log */
+.log-wrap { padding:0 16px 16px; }
+.log-title { display:flex; align-items:center; justify-content:space-between; padding:10px 0 8px; border-top:1px solid var(--border); }
+.log-title h2 { font-family:'DM Mono',monospace; font-size:0.68rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+.counters { display:flex; gap:10px; font-family:'DM Mono',monospace; font-size:0.7rem; }
+.cnt-ok { color:var(--green); } .cnt-fail { color:var(--red); }
+.log-list { display:flex; flex-direction:column; gap:4px; max-height:200px; overflow-y:auto; }
+.log-list::-webkit-scrollbar { width:3px; }
+.log-list::-webkit-scrollbar-thumb { background:var(--border); }
+.log-item { display:flex; align-items:center; gap:8px; padding:7px 10px; background:var(--white); border:1px solid var(--border); border-radius:3px; animation:slideIn 0.2s ease; }
+.li-icon { font-size:0.85rem; flex-shrink:0; }
+.li-name { flex:1; font-size:0.82rem; font-weight:700; }
+.li-name.ok{color:var(--green);} .li-name.fail{color:var(--red);} .li-name.dup{color:var(--gold);}
+.li-time { font-family:'DM Mono',monospace; font-size:0.6rem; color:var(--muted); flex-shrink:0; }
+.empty-log { text-align:center; padding:16px; font-family:'DM Mono',monospace; font-size:0.72rem; color:var(--muted); border:1px dashed var(--border); border-radius:4px; }
+
+/* PHOTO BUTTON */
+.photo-area { padding: 20px 16px 8px; }
+.photo-btn {
+  width: 100%; background: var(--ink); border: none; border-radius: 10px;
+  padding: 28px 20px; display: flex; flex-direction: column; align-items: center;
+  gap: 8px; cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.photo-btn:active { transform: scale(0.97); background: #2d2620; }
+.photo-icon { font-size: 3rem; line-height: 1; }
+.photo-label { font-family: 'DM Mono', monospace; font-size: 0.95rem; font-weight: 500; letter-spacing: 0.1em; color: var(--gold-light); text-transform: uppercase; }
+.photo-sub { font-family: 'DM Mono', monospace; font-size: 0.68rem; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Banner errore libreria -->
+<div id="libError" style="display:none;background:#c0392b;color:#fff;padding:14px 20px;font-family:monospace;font-size:0.8rem;text-align:center;">
+  ⚠ Connessione internet necessaria al primo avvio per caricare la libreria QR.<br>
+  Connettiti alla rete e ricarica la pagina.
+</div>
+
+<!-- SETUP -->
+<div id="setupScreen">
+  <div class="setup-header">
+    <h1>⊙ Scanner Badge</h1>
+    <p>Carica la lista e inserisci la chiave per iniziare</p>
+  </div>
+
+  <div class="card">
+    <div class="card-header">① Carica Lista Partecipanti (CSV)</div>
+    <div class="card-body">
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('csvInput').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-label">Tocca per caricare il file CSV<strong id="uploadStatus">Nessun file caricato</strong></div>
+      </div>
+      <input type="file" id="csvInput" accept=".csv,text/csv" style="display:none" onchange="loadCSV(event)">
+      <div id="csvChip" style="display:none"></div>
+    </div>
+  </div>
+
+  <div class="card key-field">
+    <div class="card-header">② Chiave Segreta Evento</div>
+    <div class="card-body">
+      <div class="field">
+        <label>🔑 Chiave Segreta</label>
+        <input type="password" id="secretKey" placeholder="Inserisci la chiave comunicata dall'amministratore">
+      </div>
+      <div class="hint">La stessa chiave usata per generare i badge.</div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="startScanner()">▶ AVVIA SCANNER</button>
+
+  <div style="text-align:center;padding:8px 0;">
+    <span style="font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);">
+      🔒 Tutto funziona offline sul dispositivo
+    </span>
+  </div>
+</div>
+
+<!-- SCAN SCREEN -->
+<div id="scanScreen">
+  <div class="scan-header">
+    <span id="eventLabel">Evento</span>
+    <button onclick="resetScanner()">✕ Cambia lista</button>
+  </div>
+
+  <div class="photo-area">
+    <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="leggiFoto(event)">
+    <button class="photo-btn" onclick="document.getElementById('photoInput').click()">
+      <span class="photo-icon">📷</span>
+      <span class="photo-label">SCANSIONA BADGE</span>
+      <span class="photo-sub">Tocca · inquadra il QR · scatta quando è a fuoco</span>
+    </button>
+    <canvas id="decodeCanvas" style="display:none"></canvas>
+  </div>
+
+  <div class="status-bar">
+    <div class="dot" id="dot"></div>
+    <span id="statusMsg">Inizializzazione…</span>
+  </div>
+
+  <div id="lastResult">
+    <div class="lr-row">
+      <div class="lr-icon" id="lrIcon"></div>
+      <div style="flex:1;min-width:0;">
+        <div class="lr-name" id="lrName"></div>
+        <div class="lr-sub" id="lrSub"></div>
+        <div class="lr-detail" id="lrDetail"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="log-wrap">
+    <div class="log-title">
+      <h2>Scansioni sessione</h2>
+      <div class="counters">
+        <span class="cnt-ok">✓ <span id="cntOk">0</span></span>
+        <span class="cnt-fail">✗ <span id="cntFail">0</span></span>
+      </div>
+    </div>
+    <div class="log-list" id="logList">
+      <div class="empty-log" id="emptyLog">Nessuna scansione ancora.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CRYPTO ──────────────────────────────────────────────
+async function getKey(secret) {
+  var enc = new TextEncoder();
+  return crypto.subtle.importKey('raw', enc.encode(secret),
+    { name:'HMAC', hash:'SHA-256' }, false, ['sign','verify']);
+}
+
+async function verify(payload, sigHex, secret) {
+  try {
+    var enc = new TextEncoder();
+    var key = await getKey(secret);
+    var bytes = new Uint8Array(sigHex.match(/.{2}/g).map(function(b){ return parseInt(b,16); }));
+    return crypto.subtle.verify('HMAC', key, bytes, enc.encode(payload));
+  } catch(e) { return false; }
+}
+
+// ── STATE ────────────────────────────────────────────────
+var authorizedPayloads = new Set();
+var eventInfo = { name:'', date:'' };
+var cntOk = 0, cntFail = 0;
+var scannedSet = new Set();
+var lastScan = '', lastScanTime = 0;
+
+// ── CSV ──────────────────────────────────────────────────
+function loadCSV(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var lines = e.target.result.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l; });
+    if (lines.length < 2) { showChip('err','⚠ File vuoto o non valido'); return; }
+    authorizedPayloads.clear();
+    var count = 0, eventSet = false;
+    for (var i = 1; i < lines.length; i++) {
+      var row = parseCSVRow(lines[i]);
+      if (row.length < 6) continue;
+      var evName = row[2].trim(), evDate = row[3].trim(), payload = row[5].trim();
+      if (payload) {
+        authorizedPayloads.add(payload);
+        count++;
+        if (!eventSet) { eventInfo.name = evName; eventInfo.date = evDate; eventSet = true; }
+      }
+    }
+    if (count === 0) { showChip('err','⚠ Nessun partecipante trovato'); return; }
+    showChip('ok','✓ ' + count + ' partecipanti — ' + eventInfo.name);
+    document.getElementById('uploadArea').classList.add('loaded');
+    document.getElementById('uploadStatus').textContent = file.name;
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSVRow(line) {
+  var result=[], cur='', inQ=false;
+  for (var i=0; i<line.length; i++) {
+    var ch=line[i];
+    if (ch==='"') { if (inQ && line[i+1]==='"'){cur+='"';i++;} else inQ=!inQ; }
+    else if (ch===',' && !inQ) { result.push(cur); cur=''; }
+    else cur+=ch;
+  }
+  result.push(cur);
+  return result;
+}
+
+function showChip(type, msg) {
+  var chip = document.getElementById('csvChip');
+  chip.style.display = 'block';
+  chip.innerHTML = '<div class="status-chip ' + type + '">' + msg + '</div>';
+}
+
+// ── SCANNER ──────────────────────────────────────────────
+function startScanner() {
+  if (!authorizedPayloads.size) { alert('Carica prima il file CSV.'); return; }
+  if (!document.getElementById('secretKey').value.trim()) { alert('Inserisci la chiave segreta.'); return; }
+
+  document.getElementById('setupScreen').style.display = 'none';
+  var scanScreen = document.getElementById('scanScreen');
+  scanScreen.style.display = 'flex';
+  scanScreen.style.flexDirection = 'column';
+  document.getElementById('eventLabel').textContent =
+    '⊙ ' + eventInfo.name + (eventInfo.date ? ' · ' + eventInfo.date : '');
+
+  setStatus('live', 'Pronto — tocca il pulsante per scansionare.');
+}
+
+function resetScanner() {
+  // Torna al setup — CSV e dati vengono persi
+  document.getElementById('scanScreen').style.display = 'none';
+  document.getElementById('setupScreen').style.display = 'flex';
+  document.getElementById('photoInput').value = '';
+}
+
+function scansionaAncora() {
+  // Torna alla fotocamera senza perdere CSV e dati
+  document.getElementById('photoInput').value = '';
+  document.getElementById('photoInput').click();
+}
+
+function leggiFoto(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+
+  var btn = document.querySelector('.photo-btn');
+  btn.style.opacity = '0.6';
+  document.querySelector('.photo-label').textContent = 'ANALISI IN CORSO...';
+  setStatus('live', 'Analisi immagine...');
+
+  // Timeout di 3 secondi
+  var timedOut = false;
+  var timeout = setTimeout(function() {
+    timedOut = true;
+    btn.style.opacity = '1';
+    document.querySelector('.photo-label').textContent = 'SCANSIONA BADGE';
+    setStatus('fail', '⚠ QR non trovato — riprova con una foto più vicina.');
+    event.target.value = '';
+  }, 3000);
+
+  var img = new Image();
+  img.onload = function() {
+    setTimeout(function() {
+      if (timedOut) return; // il timeout è già scattato
+      clearTimeout(timeout);
+
+      var result = decodaImmagine(img);
+
+      btn.style.opacity = '1';
+      document.querySelector('.photo-label').textContent = 'SCANSIONA BADGE';
+
+      if (result) {
+        var now = Date.now();
+        if (result !== lastScan || now - lastScanTime > 2800) {
+          lastScan = result;
+          lastScanTime = now;
+          handleScan(result);
+        } else {
+          setStatus('live', 'Badge già letto — pronto per il prossimo.');
+        }
+      } else {
+        setStatus('fail', '⚠ QR non trovato — riprova con una foto più vicina.');
+      }
+
+      URL.revokeObjectURL(img.src);
+      event.target.value = '';
+    }, 50);
+  };
+
+  img.onerror = function() {
+    clearTimeout(timeout);
+    btn.style.opacity = '1';
+    document.querySelector('.photo-label').textContent = 'SCANSIONA BADGE';
+    setStatus('fail', 'Errore caricamento immagine.');
+    event.target.value = '';
+  };
+
+  img.src = URL.createObjectURL(file);
+}
+
+function decodaImmagine(img) {
+  var canvas = document.getElementById('decodeCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = img.naturalWidth;
+  var H = img.naturalHeight;
+
+  // Prova 1: ridimensiona a 1024px max — veloce e funziona su foto nitide
+  var ratio = Math.min(1024 / W, 1024 / H, 1.0);
+  var dw = Math.round(W * ratio);
+  var dh = Math.round(H * ratio);
+  canvas.width = dw; canvas.height = dh;
+  ctx.drawImage(img, 0, 0, dw, dh);
+  var code = jsQR(ctx.getImageData(0, 0, dw, dh).data, dw, dh, { inversionAttempts: 'dontInvert' });
+  if (code && code.data) return code.data;
+
+  // Prova 2: ruotata 90° (EXIF iPhone verticale)
+  canvas.width = dh; canvas.height = dw;
+  ctx.save(); ctx.translate(dh, 0); ctx.rotate(Math.PI / 2);
+  ctx.drawImage(img, 0, 0, dw, dh);
+  ctx.restore();
+  code = jsQR(ctx.getImageData(0, 0, dh, dw).data, dh, dw, { inversionAttempts: 'dontInvert' });
+  if (code && code.data) return code.data;
+
+  // Prova 3: ruotata 270° (EXIF Android)
+  canvas.width = dh; canvas.height = dw;
+  ctx.save(); ctx.translate(0, dw); ctx.rotate(-Math.PI / 2);
+  ctx.drawImage(img, 0, 0, dw, dh);
+  ctx.restore();
+  code = jsQR(ctx.getImageData(0, 0, dh, dw).data, dh, dw, { inversionAttempts: 'dontInvert' });
+  if (code && code.data) return code.data;
+
+  // Prova 4: inversione colori (QR chiaro su sfondo scuro)
+  canvas.width = dw; canvas.height = dh;
+  ctx.drawImage(img, 0, 0, dw, dh);
+  code = jsQR(ctx.getImageData(0, 0, dw, dh).data, dw, dh, { inversionAttempts: 'onlyInvert' });
+  if (code && code.data) return code.data;
+
+  return null;
+}
+
+// ── SCAN HANDLER ─────────────────────────────────────────
+async function handleScan(raw) {
+  var secret = document.getElementById('secretKey').value.trim();
+  var parts = raw.split('|SIG:');
+  var payloadStr = parts[0];
+  var sigHex = parts.length > 1 ? parts[1].trim() : null;
+
+  var parsed = null;
+  try { parsed = JSON.parse(payloadStr); } catch(e) {}
+
+  var isDup = scannedSet.has(raw);
+  scannedSet.add(raw);
+
+  // Check 1: firma
+  var sigOk = sigHex ? await verify(payloadStr, sigHex, secret) : false;
+  if (!sigOk) {
+    showScanResult('🚫', 'Badge non autentico', 'FIRMA NON VALIDA', '', 'fail');
+    return;
+  }
+
+  // Check 2: lista CSV
+  if (!authorizedPayloads.has(raw)) {
+    var n = (parsed && parsed.name) ? parsed.name : 'Sconosciuto';
+    showScanResult('🚫', n, 'NON IN LISTA AUTORIZZATI', '', 'fail');
+    return;
+  }
+
+  // Check 3: evento
+  if (parsed && parsed.event && parsed.event !== eventInfo.name) {
+    showScanResult('🚫', parsed.name || '?', 'EVENTO NON CORRISPONDENTE', parsed.event, 'fail');
+    return;
+  }
+
+  // Check 4: giorno
+  var days = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  var todayName = days[new Date().getDay()];
+  var allowedDay = parsed ? (parsed.day || '') : '';
+  if (allowedDay && allowedDay !== todayName) {
+    showScanResult('🚫', parsed.name, 'GIORNO NON AUTORIZZATO',
+      'Autorizzato: ' + allowedDay + ' — Oggi: ' + todayName, 'fail');
+    return;
+  }
+
+  // Check 5: duplicato
+  if (isDup) {
+    showScanResult('⚠️', parsed.name, 'GIÀ SCANSIONATO', '', 'dup');
+    return;
+  }
+
+  // ✅ OK
+  var role = (parsed.role || '').trim();
+  var roleIcon  = role ? '🎫' : '✅';
+  var roleLabel = role ? 'AUTORIZZAZIONE · ' + role.toUpperCase() : 'ACCESSO CONFERMATO';
+  var detail    = parsed.id + (allowedDay ? ' · ' + allowedDay : '') + (parsed.event ? ' · ' + parsed.event : '');
+  showScanResult(roleIcon, parsed.name, roleLabel, detail, 'ok', role);
+}
+
+function showScanResult(icon, name, sub, detail, type, role) {
+  // Card risultato
+  var lr = document.getElementById('lastResult');
+  lr.style.display = 'block';
+  document.getElementById('lrIcon').textContent = icon;
+
+  var lrName = document.getElementById('lrName');
+  lrName.textContent = name + (role && type === 'ok' ? ' · ' + role : '');
+  lrName.className = 'lr-name ' + type;
+
+  var lrSub = document.getElementById('lrSub');
+  lrSub.textContent = sub;
+  lrSub.className = 'lr-sub ' + type;
+
+  document.getElementById('lrDetail').textContent = detail;
+
+  // Contatori
+  if (type === 'ok')   { cntOk++;   document.getElementById('cntOk').textContent = cntOk; }
+  if (type === 'fail') { cntFail++; document.getElementById('cntFail').textContent = cntFail; }
+
+  // Log
+  var emptyLog = document.getElementById('emptyLog');
+  if (emptyLog) emptyLog.remove();
+  var t = new Date().toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  var icons = { ok:'✅', fail:'❌', dup:'⚠️' };
+  var item = document.createElement('div');
+  item.className = 'log-item';
+  item.innerHTML = '<span class="li-icon">' + (icons[type]||'❌') + '</span>'
+    + '<span class="li-name ' + type + '">' + escHtml(name) + '</span>'
+    + '<span class="li-time">' + t + '</span>';
+  var list = document.getElementById('logList');
+  list.insertBefore(item, list.firstChild);
+
+  // Status bar
+  setStatus(type === 'ok' ? 'ok' : 'fail',
+    type === 'ok'  ? '✓ ' + name + (role ? ' · ' + role : '') + ' — OK' :
+    type === 'dup' ? '⚠ ' + name + ' — già scansionato' :
+                    '✗ ' + sub);
+}
+
+function setStatus(state, msg) {
+  document.getElementById('statusMsg').textContent = msg;
+  document.getElementById('dot').className = 'dot' + (state ? ' ' + state : '');
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
