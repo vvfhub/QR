@@ -230,6 +230,7 @@ async function hashPassword(pwd) {
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="window.print()">🖨 Stampa tutti</button>
+        <button class="btn btn-secondary" onclick="downloadAllPNG()">↓ Scarica tutti PNG</button>
       <button class="btn btn-green" onclick="exportCSV()">↓ Esporta CSV operatori</button>
       <button class="btn btn-secondary" onclick="clearAll()">✕ Azzera</button>
     </div>
@@ -415,6 +416,13 @@ function downloadBadge(idx) {
   a.click();
 }
 
+
+function downloadAllPNG() {
+  if (!allBadges.length) { alert('Nessun badge da scaricare.'); return; }
+  allBadges.forEach(function(b, idx) {
+    setTimeout(function() { downloadBadge(idx); }, idx * 400);
+  });
+}
 
 function exportCSV() {
   if (!allBadges.length) { alert('Genera prima i badge.'); return; }
