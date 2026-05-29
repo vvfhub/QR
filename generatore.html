@@ -218,6 +218,15 @@ async function hashPassword(pwd) {
         <textarea id="nameList" placeholder="Mario Rossi&#10;Giulia Bianchi&#10;Luca Verdi&#10;…"></textarea>
         <div class="hint">Puoi generare più gruppi con giorni diversi — ogni generazione aggiunge alla lista corrente.</div>
       </div>
+      <div style="display:flex;align-items:center;gap:16px;padding:4px 0;font-family:'DM Mono',monospace;font-size:0.75rem;">
+        <span style="color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;">Tipo QR:</span>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="radio" name="qrMode" value="secure" checked> 🔒 Sicuro
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+          <input type="radio" name="qrMode" value="readable"> 👁 Leggibile
+        </label>
+      </div>
       <button class="btn btn-primary" onclick="generateBadges()">⊞ GENERA BADGE QR</button>
     </div>
   </div>
