@@ -208,6 +208,10 @@ async function hashPassword(pwd) {
             <option value="Domenica">Domenica</option>
           </select>
         </div>
+        <div class="field">
+          <label>Ruolo (opzionale)</label>
+          <input type="text" id="role" placeholder="es. Capitano, VIP, Staff…">
+        </div>
       </div>
       <div class="field">
         <label>Nomi Partecipanti (uno per riga)</label>
@@ -261,6 +265,7 @@ async function generateBadges() {
   var eventVal = document.getElementById('eventName').value.trim();
   var dateVal  = document.getElementById('eventDate').value.trim();
   var dayVal   = document.getElementById('allowedDay').value;
+  var roleVal  = document.getElementById('role').value;
   var secret   = document.getElementById('secretKey').value.trim();
 
   if (!eventVal) { alert('Inserisci il nome dell\'evento.'); return; }
@@ -272,11 +277,11 @@ async function generateBadges() {
   for (var i = 0; i < names.length; i++) {
     var name = names[i];
     var id = 'P' + String(startIdx + i + 1).padStart(3, '0');
-    var payloadObj = { id: id, name: name, event: eventVal, date: dateVal, day: dayVal };
+    var payloadObj = { id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal };
     var payloadStr = JSON.stringify(payloadObj);
     var sig = await sign(payloadStr, secret);
     var finalPayload = payloadStr + '|SIG:' + sig;
-    allBadges.push({ id: id, name: name, event: eventVal, date: dateVal, day: dayVal, payload: finalPayload });
+    allBadges.push({ id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal, payload: finalPayload });
   }
 
   renderGrid();
@@ -306,7 +311,7 @@ function renderGrid() {
 
     var dayEl = document.createElement('div');
     dayEl.className = 'badge-day';
-    dayEl.textContent = b.day || 'Tutti i giorni';
+    dayEl.textContent = (b.day || 'Tutti i giorni') + (b.role ? ' · ' + b.role.toUpperCase() : '');
 
     var secEl = document.createElement('div');
     secEl.innerHTML = '<span class="secure-badge">🔒 Firmato</span>';
@@ -366,6 +371,12 @@ function downloadBadge(idx) {
   ctx.fillStyle = '#8a7b65';
   ctx.font = '11px monospace';
   ctx.fillText(b.id + (b.day ? '  ·  ' + b.day.toUpperCase() : ''), 150, 248);
+
+  if (b.role) {
+    ctx.fillStyle = b.role === 'Capitano' ? '#1e3a8a' : '#7c2d12';
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText(b.role.toUpperCase(), 150, 268);
+  }
 
   // Linea
   ctx.strokeStyle = '#c8b99a';
