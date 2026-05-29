@@ -98,7 +98,8 @@ body { background: var(--paper); color: var(--ink); font-family: 'Fraunces', ser
 }
 .overlay.show { animation: fadeOut 2s ease forwards; }
 @keyframes fadeOut { 0%,60% { opacity:1; } 100% { opacity:0; } }
-.overlay.ok   { background: rgba(30,123,75,0.92); }
+.overlay.ok         { background: rgba(30,123,75,0.92); }
+.overlay.ok.hasrole { background: rgba(30,58,138,0.92); }
 .overlay.fail { background: rgba(192,57,43,0.92); }
 .overlay.dup  { background: rgba(196,146,42,0.92); }
 .ov-icon { font-size: 4rem; line-height: 1; }
@@ -443,18 +444,23 @@ async function handleScan(raw) {
   }
 
   // ── Tutto ok ✅
+  var role = (parsed.role || '').trim();
+  var roleIcon = role ? '🎫' : '✅';
+  var roleLabel = role ? 'AUTORIZZAZIONE · ' + role.toUpperCase() : 'ACCESSO CONFERMATO';
   var detail = parsed.id + (allowedDay ? ' · ' + allowedDay : '') + (parsed.event ? ' · ' + parsed.event : '');
-  showScanResult('✅', parsed.name, 'ACCESSO CONFERMATO', detail, 'ok');
+  showScanResult(roleIcon, parsed.name, roleLabel, detail, 'ok', role);
 }
 
-function showScanResult(icon, name, sub, detail, type) {
+function showScanResult(icon, name, sub, detail, type, role) {
   // Overlay camera
   var ov = document.getElementById('overlay');
   document.getElementById('ovIcon').textContent = icon;
   document.getElementById('ovName').textContent = name;
   document.getElementById('ovSub').textContent = sub;
   document.getElementById('ovDetail').textContent = detail;
-  ov.className = 'overlay ' + type + ' show';
+  var roleClass = '';
+  if (type === 'ok' && role) roleClass = ' hasrole';
+  ov.className = 'overlay ' + type + roleClass + ' show';
   setTimeout(function() { ov.className = 'overlay'; }, 2000);
 
   // Card risultato
@@ -462,7 +468,7 @@ function showScanResult(icon, name, sub, detail, type) {
   lr.style.display = 'block';
   document.getElementById('lrIcon').textContent = icon;
   var lrName = document.getElementById('lrName');
-  lrName.textContent = name;
+  lrName.textContent = name + (role && type === 'ok' ? ' · ' + role : '');
   lrName.className = 'lr-name ' + type;
   document.getElementById('lrDetail').textContent = sub + (detail ? ' — ' + detail : '');
 
