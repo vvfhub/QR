@@ -3,8 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Cache-Control" content="max-age=604800">
 <title>Scanner Badge QR</title>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- html5-qrcode con fallback su CDN multipli per resistenza offline -->
+<script>
+(function() {
+  var urls = [
+    'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js',
+    'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js'
+  ];
+  var idx = 0;
+  function loadNext() {
+    if (idx >= urls.length) {
+      document.getElementById('libError').style.display = 'block';
+      return;
+    }
+    var s = document.createElement('script');
+    s.src = urls[idx++];
+    s.onload = function() { console.log('Libreria QR caricata da: ' + s.src); };
+    s.onerror = function() { loadNext(); };
+    document.head.appendChild(s);
+  }
+  loadNext();
+})();
+</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@400;700;900&display=swap');
 :root {
@@ -112,6 +134,12 @@ body { background: var(--paper); color: var(--ink); font-family: 'Fraunces', ser
 </style>
 </head>
 <body>
+
+<!-- Banner errore libreria -->
+<div id="libError" style="display:none;background:#c0392b;color:#fff;padding:14px 20px;font-family:monospace;font-size:0.8rem;text-align:center;">
+  ⚠ Connessione internet necessaria al primo avvio per caricare la libreria QR.<br>
+  Connettiti alla rete e ricarica la pagina.
+</div>
 
 <!-- SETUP -->
 <div id="setupScreen">

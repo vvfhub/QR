@@ -268,9 +268,9 @@ async function generateBadges() {
   var roleVal  = document.getElementById('role').value;
   var secret   = document.getElementById('secretKey').value.trim();
 
-  var qrModeCheck = document.querySelector('input[name="qrMode"]:checked').value;
+  var qrMode = document.querySelector('input[name="qrMode"]:checked').value;
   if (!eventVal) { alert('Inserisci il nome dell\'evento.'); return; }
-  if (qrModeCheck === 'secure' && !secret) { alert('Inserisci la chiave segreta per il QR sicuro.'); return; }
+  if (qrMode === 'secure' && !secret) { alert('Inserisci la chiave segreta per il QR sicuro.'); return; }
   if (!names.length) { alert('Inserisci almeno un nome.'); return; }
 
   var startIdx = allBadges.length;
@@ -280,7 +280,6 @@ async function generateBadges() {
     var id = 'P' + String(startIdx + i + 1).padStart(3, '0');
     var payloadObj = { id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal };
     var payloadStr = JSON.stringify(payloadObj);
-    var qrMode = document.querySelector('input[name="qrMode"]:checked').value;
     var finalPayload;
     if (qrMode === 'readable') {
       // Formato leggibile da qualsiasi app QR
