@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Scanner Badge QR</title>
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:wght@400;700;900&display=swap');
 :root {
@@ -270,11 +270,12 @@ async function verify(payload, sigHex, secret) {
 var authorizedPayloads = new Set(); // set of valid payload strings (from CSV)
 var authorizedNames    = new Set(); // set of lowercase names
 var eventInfo = { name: '', date: '' };
-var zxingReader = null;
 var scanning = false;
 var lastScan = '', lastScanTime = 0;
 var cntOk = 0, cntFail = 0;
 var scannedSet = new Set();
+var camStream = null;
+var scanTimer = null;
 
 // ── CSV LOADER ───────────────────────────────────────────
 function loadCSV(event) {
@@ -363,30 +364,81 @@ async function startScanner() {
   document.getElementById('eventLabel').textContent =
     '⊙ ' + eventInfo.name + (eventInfo.date ? ' · ' + eventInfo.date : '');
 
-  zxingReader = new ZXing.BrowserQRCodeReader();
-  setStatus('live', 'Scansione attiva — inquadra il badge.');
+  setStatus('live', 'Avvio camera...');
 
   try {
-    await zxingReader.decodeFromVideoDevice(undefined, 'video', function(result, err) {
-      if (result) {
-        var now = Date.now();
-        if (result.text !== lastScan || now - lastScanTime > 2800) {
-          lastScan = result.text;
-          lastScanTime = now;
-          handleScan(result.text);
-        }
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
       }
     });
+
+    var videoEl = document.getElementById('video');
+    videoEl.srcObject = camStream;
+    await videoEl.play();
+
+    // Autofocus continuo se disponibile
+    var track = camStream.getVideoTracks()[0];
+    if (track && track.applyConstraints) {
+      try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch(e) {}
+    }
+
     scanning = true;
+    setStatus('live', 'Scansione attiva — inquadra il badge.');
+
+    // Tap sul video per forzare messa a fuoco
+    videoEl.onclick = function() {
+      if (!track) return;
+      try {
+        track.applyConstraints({ advanced: [{ focusMode: 'auto' }] });
+        setTimeout(function() {
+          try { track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch(e) {}
+        }, 600);
+      } catch(e) {}
+    };
+
+    // Avvia loop di scansione dopo 1.5s (tempo per messa a fuoco iniziale)
+    setTimeout(function() { if (scanning) scanLoop(); }, 1500);
+
   } catch(e) {
     alert('Errore camera: ' + (e.message || e));
     resetScanner();
   }
 }
 
+var scanCanvas = document.createElement('canvas');
+var scanCtx = scanCanvas.getContext('2d');
+
+function scanLoop() {
+  if (!scanning) return;
+  var videoEl = document.getElementById('video');
+  if (videoEl.readyState === videoEl.HAVE_ENOUGH_DATA) {
+    scanCanvas.width  = videoEl.videoWidth;
+    scanCanvas.height = videoEl.videoHeight;
+    scanCtx.drawImage(videoEl, 0, 0);
+    var imageData = scanCtx.getImageData(0, 0, scanCanvas.width, scanCanvas.height);
+    var code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'attemptBoth'
+    });
+    if (code && code.data) {
+      var now = Date.now();
+      if (code.data !== lastScan || now - lastScanTime > 2800) {
+        lastScan = code.data;
+        lastScanTime = now;
+        handleScan(code.data);
+      }
+    }
+  }
+  scanTimer = setTimeout(scanLoop, 250);
+}
+
 function resetScanner() {
-  if (zxingReader) { try { zxingReader.reset(); } catch(e) {} zxingReader = null; }
   scanning = false;
+  if (scanTimer) { clearTimeout(scanTimer); scanTimer = null; }
+  if (camStream) { camStream.getTracks().forEach(function(t) { t.stop(); }); camStream = null; }
+  document.getElementById('video').srcObject = null;
   document.getElementById('scanScreen').style.display = 'none';
   document.getElementById('setupScreen').style.display = 'flex';
 }
