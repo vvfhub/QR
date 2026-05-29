@@ -15,20 +15,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--paper); color: var(--ink); font-family: 'Fraunces', serif; min-height: 100vh; }
 
-header {
-  background: var(--ink); padding: 18px 24px;
-  display: flex; align-items: center; justify-content: space-between;
-}
+header { background: var(--ink); padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; }
 header h1 { color: var(--gold-light); font-size: 1.1rem; letter-spacing: 0.06em; font-family: 'DM Mono', monospace; }
 header span { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.7rem; }
 
 .body { padding: 20px; display: flex; flex-direction: column; gap: 16px; max-width: 600px; margin: 0 auto; }
 
 .card { background: var(--white); border: 1.5px solid var(--border); border-radius: 6px; overflow: hidden; }
-.card-header {
-  padding: 10px 16px; background: var(--ink); color: var(--gold-light);
-  font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase;
-}
+.card-header { padding: 10px 16px; background: var(--ink); color: var(--gold-light); font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 
 .field { display: flex; flex-direction: column; gap: 4px; }
@@ -40,21 +34,16 @@ header span { color: var(--muted); font-family: 'DM Mono', monospace; font-size:
 }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
 .field textarea { min-height: 140px; resize: vertical; line-height: 1.6; }
-
 .field-row { display: flex; gap: 10px; }
 .field-row .field { flex: 1; }
-
 .hint { font-family: 'DM Mono', monospace; font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
 
 .key-field { border-color: var(--gold) !important; }
 .key-field label { color: var(--gold) !important; }
+.key-field input { border-color: var(--gold) !important; }
 
-.btn {
-  padding: 13px; border: none; border-radius: 4px; cursor: pointer;
-  font-family: 'DM Mono', monospace; font-weight: 500; font-size: 0.8rem;
-  letter-spacing: 0.08em; text-transform: uppercase; transition: all 0.15s;
-}
-.btn-primary { background: var(--ink); color: var(--gold-light); }
+.btn { padding: 13px; border: none; border-radius: 4px; cursor: pointer; font-family: 'DM Mono', monospace; font-weight: 500; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; transition: all 0.15s; }
+.btn-primary { background: var(--ink); color: var(--gold-light); width: 100%; }
 .btn-primary:hover { background: #2d2620; }
 .btn-secondary { background: transparent; border: 1.5px solid var(--border); color: var(--ink); }
 .btn-secondary:hover { border-color: var(--ink); }
@@ -63,103 +52,41 @@ header span { color: var(--muted); font-family: 'DM Mono', monospace; font-size:
 .btn-row { display: flex; gap: 8px; }
 .btn-row .btn { flex: 1; }
 
-/* Preview */
 #previewArea { display: none; flex-direction: column; gap: 14px; }
-.preview-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; background: var(--green); border-radius: 4px; color: #fff;
-  font-family: 'DM Mono', monospace; font-size: 0.75rem;
-}
+.preview-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--green); border-radius: 4px; color: #fff; font-family: 'DM Mono', monospace; font-size: 0.75rem; }
+
 .badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-.badge-card {
-  background: var(--white); border: 1.5px solid var(--border); border-radius: 6px;
-  padding: 10px; text-align: center; cursor: pointer; transition: all 0.15s;
-}
+.badge-card { background: var(--white); border: 1.5px solid var(--border); border-radius: 6px; padding: 10px; text-align: center; cursor: pointer; transition: all 0.15s; }
 .badge-card:hover { border-color: var(--gold); box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
-.badge-card canvas { width: 110px !important; height: 110px !important; display: block; margin: 6px auto; }
+.badge-card canvas { width: 160px !important; height: 160px !important; display: block; margin: 6px auto; }
 .badge-name { font-weight: 700; font-size: 0.82rem; line-height: 1.2; }
 .badge-meta { font-family: 'DM Mono', monospace; font-size: 0.58rem; color: var(--muted); margin-top: 3px; }
 .badge-day { font-family: 'DM Mono', monospace; font-size: 0.6rem; color: var(--gold); margin-top: 2px; text-transform: uppercase; }
-
-.secure-badge {
-  display: inline-block; background: var(--green); color: #fff;
-  font-family: 'DM Mono', monospace; font-size: 0.6rem; padding: 2px 7px;
-  border-radius: 10px; margin-top: 4px;
-}
+.secure-badge { display: inline-block; background: var(--green); color: #fff; font-family: 'DM Mono', monospace; font-size: 0.6rem; padding: 2px 7px; border-radius: 10px; margin-top: 4px; }
 
 @media print {
   header, .card, #previewArea > .btn-row, .preview-bar { display: none !important; }
+  .badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; }
+  .badge-card { page-break-inside: avoid; border: 1px solid #ccc; }
   #previewArea { display: flex !important; }
   body { background: white; }
-  .badges-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6mm;
-  }
-  .badge-card { page-break-inside: avoid; border: 1px solid #ccc; }
-  .secure-badge { display: none; }
 }
 </style>
 </head>
 <body>
 
 <!-- PASSWORD GATE -->
-<div id="gate" style="
-  position:fixed; inset:0; background:#1a1410; z-index:9999;
-  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px;
-">
-  <div style="text-align:center; margin-bottom:8px;">
-    <div style="font-size:2rem; margin-bottom:8px;">🔒</div>
-    <div style="font-family:'DM Mono',monospace; font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; color:#e8b84b;">
-      Area Amministratore
-    </div>
-    <div style="font-family:'DM Mono',monospace; font-size:0.62rem; color:#555; margin-top:4px;">
-      Accesso riservato
-    </div>
+<div id="gate" style="position:fixed;inset:0;background:#1a1410;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="text-align:center;margin-bottom:8px;">
+    <div style="font-size:2rem;margin-bottom:8px;">🔒</div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:#e8b84b;">Area Amministratore</div>
+    <div style="font-family:'DM Mono',monospace;font-size:0.62rem;color:#555;margin-top:4px;">Accesso riservato</div>
   </div>
-  <input type="password" id="gateInput"
-    placeholder="Password…"
-    onkeydown="if(event.key==='Enter') checkGate()"
-    style="
-      padding:12px 18px; border:1.5px solid #333; border-radius:4px;
-      background:#111; color:#e8b84b; font-family:'DM Mono',monospace;
-      font-size:0.85rem; outline:none; width:240px; text-align:center;
-      letter-spacing:0.08em;
-    ">
-  <button onclick="checkGate()" style="
-    padding:11px 32px; background:#e8b84b; color:#1a1410; border:none; border-radius:4px;
-    font-family:'DM Mono',monospace; font-size:0.78rem; font-weight:600;
-    letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;
-  ">ENTRA</button>
-  <div id="gateErr" style="
-    font-family:'DM Mono',monospace; font-size:0.68rem; color:#c0392b;
-    min-height:18px; letter-spacing:0.06em;
-  "></div>
+  <input type="password" id="gateInput" placeholder="Password…" onkeydown="if(event.key==='Enter') checkGate()"
+    style="padding:12px 18px;border:1.5px solid #333;border-radius:4px;background:#111;color:#e8b84b;font-family:'DM Mono',monospace;font-size:0.85rem;outline:none;width:240px;text-align:center;letter-spacing:0.08em;">
+  <button onclick="checkGate()" style="padding:11px 32px;background:#e8b84b;color:#1a1410;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:0.78rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">ENTRA</button>
+  <div id="gateErr" style="font-family:'DM Mono',monospace;font-size:0.68rem;color:#c0392b;min-height:18px;letter-spacing:0.06em;"></div>
 </div>
-
-<script>
-function checkGate() {
-  var val = document.getElementById('gateInput').value;
-  // Hash-based check — password: Pinkie2026@
-  var target = 'b7e94f2a9c1d3e5f8a2b4c6d0e1f3a5b7c9d2e4f6a8b0c1d3e5f7a9b2c4d6e8';
-  hashPassword(val).then(function(h) {
-    if (h === 'ca30c2adb9e7f6dc9497ca2c85919a7b733bc81bec3f378a6ec10944d00f5781') {
-      document.getElementById('gate').style.display = 'none';
-    } else {
-      document.getElementById('gateErr').textContent = 'Password errata';
-      document.getElementById('gateInput').value = '';
-      document.getElementById('gateInput').focus();
-      setTimeout(function(){ document.getElementById('gateErr').textContent=''; }, 2000);
-    }
-  });
-}
-
-async function hashPassword(pwd) {
-  var enc = new TextEncoder();
-  var buf = await crypto.subtle.digest('SHA-256', enc.encode(pwd));
-  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
-}
-</script>
 
 <header>
   <h1>⊞ GENERATORE BADGE</h1>
@@ -168,14 +95,13 @@ async function hashPassword(pwd) {
 
 <div class="body">
 
-  <!-- EVENTO -->
   <div class="card">
     <div class="card-header">① Dati Evento</div>
     <div class="card-body">
       <div class="field-row">
         <div class="field">
           <label>Nome Evento</label>
-          <input type="text" id="eventName" placeholder="es. Convegno VVF 2025" value="">
+          <input type="text" id="eventName" placeholder="es. Convegno VVF 2025">
         </div>
         <div class="field">
           <label>Data</label>
@@ -183,14 +109,13 @@ async function hashPassword(pwd) {
         </div>
       </div>
       <div class="field key-field">
-        <label>🔑 Chiave Segreta Evento</label>
+        <label>🔑 Chiave Segreta</label>
         <input type="password" id="secretKey" placeholder="Scegli una password robusta…">
-        <div class="hint">Questa chiave serve per firmare i badge. Conservala e comunicala solo agli operatori scanner.</div>
+        <div class="hint">Conservala e comunicala solo agli operatori scanner.</div>
       </div>
     </div>
   </div>
 
-  <!-- PARTECIPANTI -->
   <div class="card">
     <div class="card-header">② Partecipanti</div>
     <div class="card-body">
@@ -216,31 +141,20 @@ async function hashPassword(pwd) {
       <div class="field">
         <label>Nomi Partecipanti (uno per riga)</label>
         <textarea id="nameList" placeholder="Mario Rossi&#10;Giulia Bianchi&#10;Luca Verdi&#10;…"></textarea>
-        <div class="hint">Puoi generare più gruppi con giorni diversi — ogni generazione aggiunge alla lista corrente.</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:16px;padding:4px 0;font-family:'DM Mono',monospace;font-size:0.75rem;">
-        <span style="color:var(--muted);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em;">Tipo QR:</span>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-          <input type="radio" name="qrMode" value="secure" checked> 🔒 Sicuro
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-          <input type="radio" name="qrMode" value="readable"> 👁 Leggibile
-        </label>
+        <div class="hint">Puoi aggiungere più gruppi con giorni diversi — ogni generazione si accumula.</div>
       </div>
       <button class="btn btn-primary" onclick="generateBadges()">⊞ GENERA BADGE QR</button>
     </div>
   </div>
 
-  <!-- PREVIEW -->
   <div id="previewArea">
     <div class="preview-bar">
       <span id="previewCount">0 badge</span>
-      <span style="opacity:0.8;font-size:0.65rem;">Clicca un badge per scaricarlo</span>
+      <span style="opacity:0.8;font-size:0.65rem;">Clicca un badge per scaricarlo come PNG</span>
     </div>
     <div class="btn-row">
       <button class="btn btn-secondary" onclick="window.print()">🖨 Stampa tutti</button>
-        <button class="btn btn-secondary" onclick="downloadAllPNG()">↓ Scarica tutti PNG</button>
-      <button class="btn btn-green" onclick="exportCSV()">↓ Esporta CSV operatori</button>
+      <button class="btn btn-green" onclick="exportCSV()">↓ Esporta CSV</button>
       <button class="btn btn-secondary" onclick="clearAll()">✕ Azzera</button>
     </div>
     <div class="badges-grid" id="badgesGrid"></div>
@@ -249,11 +163,31 @@ async function hashPassword(pwd) {
 </div>
 
 <script>
-// ── CRYPTO ──────────────────────────────────────────────
+// ── GATE ─────────────────────────────────────────────────
+function checkGate() {
+  hashPassword(document.getElementById('gateInput').value).then(function(h) {
+    if (h === 'ca30c2adb9e7f6dc9497ca2c85919a7b733bc81bec3f378a6ec10944d00f5781') {
+      document.getElementById('gate').style.display = 'none';
+    } else {
+      document.getElementById('gateErr').textContent = 'Password errata';
+      document.getElementById('gateInput').value = '';
+      document.getElementById('gateInput').focus();
+      setTimeout(function() { document.getElementById('gateErr').textContent = ''; }, 2000);
+    }
+  });
+}
+
+async function hashPassword(pwd) {
+  var enc = new TextEncoder();
+  var buf = await crypto.subtle.digest('SHA-256', enc.encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+}
+
+// ── CRYPTO ────────────────────────────────────────────────
 async function getKey(secret) {
   var enc = new TextEncoder();
   return crypto.subtle.importKey('raw', enc.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
 }
 
 async function sign(payload, secret) {
@@ -265,22 +199,21 @@ async function sign(payload, secret) {
   }).join('');
 }
 
-// ── STATE ────────────────────────────────────────────────
-var allBadges = []; // { id, name, event, date, day, payload }
+// ── STATE ─────────────────────────────────────────────────
+var allBadges = [];
 
-// ── GENERATOR ────────────────────────────────────────────
+// ── GENERATOR ─────────────────────────────────────────────
 async function generateBadges() {
   var names = document.getElementById('nameList').value
     .split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
   var eventVal = document.getElementById('eventName').value.trim();
   var dateVal  = document.getElementById('eventDate').value.trim();
   var dayVal   = document.getElementById('allowedDay').value;
-  var roleVal  = document.getElementById('role').value;
+  var roleVal  = document.getElementById('role').value.trim();
   var secret   = document.getElementById('secretKey').value.trim();
 
-  var qrMode = document.querySelector('input[name="qrMode"]:checked').value;
   if (!eventVal) { alert('Inserisci il nome dell\'evento.'); return; }
-  if (qrMode === 'secure' && !secret) { alert('Inserisci la chiave segreta per il QR sicuro.'); return; }
+  if (!secret)   { alert('Inserisci la chiave segreta.'); return; }
   if (!names.length) { alert('Inserisci almeno un nome.'); return; }
 
   var startIdx = allBadges.length;
@@ -290,22 +223,8 @@ async function generateBadges() {
     var id = 'P' + String(startIdx + i + 1).padStart(3, '0');
     var payloadObj = { id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal };
     var payloadStr = JSON.stringify(payloadObj);
-    var finalPayload;
-    if (qrMode === 'readable') {
-      // Formato leggibile da qualsiasi app QR
-      finalPayload = [
-        'EVENTO: ' + eventVal,
-        dateVal  ? 'DATA: '   + dateVal  : '',
-        'NOME: '  + name,
-        roleVal  ? 'RUOLO: '  + roleVal  : '',
-        dayVal   ? 'GIORNO: ' + dayVal   : '',
-        'ID: '    + id
-      ].filter(function(l){ return l; }).join('
-');
-    } else {
-      var sig = await sign(payloadStr, secret);
-      finalPayload = payloadStr + '|SIG:' + sig;
-    }
+    var sig = await sign(payloadStr, secret);
+    var finalPayload = payloadStr + '|SIG:' + sig;
     allBadges.push({ id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal, payload: finalPayload });
   }
 
@@ -323,7 +242,7 @@ function renderGrid() {
 
     var qrCanvas = document.createElement('canvas');
     qrCanvas.setAttribute('data-idx', idx);
-    new QRious({ element: qrCanvas, value: b.payload, size: 150,
+    new QRious({ element: qrCanvas, value: b.payload, size: 220,
       foreground: '#1a1410', background: '#fdfaf4', level: 'M' });
 
     var nameEl = document.createElement('div');
@@ -336,13 +255,10 @@ function renderGrid() {
 
     var dayEl = document.createElement('div');
     dayEl.className = 'badge-day';
-    dayEl.textContent = (b.day || 'Tutti i giorni') + (b.role ? ' · ' + b.role.toUpperCase() : '');
+    dayEl.textContent = (b.day || 'Tutti i giorni') + (b.role ? ' · ' + b.role : '');
 
     var secEl = document.createElement('div');
-    var isSecure = b.payload.indexOf('|SIG:') > -1;
-    secEl.innerHTML = isSecure
-      ? '<span class="secure-badge">🔒 Firmato</span>'
-      : '<span class="secure-badge" style="background:var(--gold);color:#000;">👁 Leggibile</span>';
+    secEl.innerHTML = '<span class="secure-badge">🔒 Firmato</span>';
 
     card.appendChild(qrCanvas);
     card.appendChild(nameEl);
@@ -370,54 +286,45 @@ function downloadBadge(idx) {
   c.width = 300; c.height = 380;
   var ctx = c.getContext('2d');
 
-  // Sfondo
   ctx.fillStyle = '#fdfaf4';
   ctx.fillRect(0, 0, 300, 380);
   ctx.strokeStyle = '#c8b99a';
   ctx.lineWidth = 2;
   ctx.strokeRect(4, 4, 292, 372);
 
-  // Header scuro con nome evento
   ctx.fillStyle = '#1a1410';
   ctx.fillRect(0, 0, 300, 38);
   ctx.fillStyle = '#e8b84b';
   ctx.font = 'bold 11px monospace';
   ctx.textAlign = 'center';
-  var header = (b.event + (b.date ? '  ·  ' + b.date : '')).toUpperCase();
-  ctx.fillText(header, 150, 24);
+  ctx.fillText((b.event + (b.date ? '  ·  ' + b.date : '')).toUpperCase(), 150, 24);
 
-  // QR centrato
-  ctx.drawImage(srcCanvas, 75, 48, 150, 150);
+  ctx.drawImage(srcCanvas, 50, 44, 200, 200);
 
-  // Nome partecipante
   ctx.fillStyle = '#1a1410';
   ctx.font = 'bold 20px serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(b.name, 150, 228);
+  ctx.fillText(b.name, 150, 272);
 
-  // ID e giorno
   ctx.fillStyle = '#8a7b65';
   ctx.font = '11px monospace';
-  ctx.fillText(b.id + (b.day ? '  ·  ' + b.day.toUpperCase() : ''), 150, 248);
+  ctx.fillText(b.id + (b.day ? '  ·  ' + b.day.toUpperCase() : ''), 150, 292);
 
   if (b.role) {
-    ctx.fillStyle = b.role === 'Capitano' ? '#1e3a8a' : '#7c2d12';
+    ctx.fillStyle = '#1a1410';
     ctx.font = 'bold 13px monospace';
-    ctx.fillText(b.role.toUpperCase(), 150, 268);
+    ctx.fillText(b.role.toUpperCase(), 150, 312);
   }
 
-  // Linea
   ctx.strokeStyle = '#c8b99a';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(20, 264);
-  ctx.lineTo(280, 264);
+  ctx.moveTo(20, 326);
+  ctx.lineTo(280, 326);
   ctx.stroke();
 
-  // Footer
-  ctx.fillStyle = '#8a7b65';
-  ctx.font = '9px monospace';
-  ctx.fillText('BADGE UFFICIALE — ' + b.event.toUpperCase(), 150, 280);
+  ctx.fillStyle = '#1e7b4b';
+  ctx.font = 'bold 9px monospace';
+  ctx.fillText('🔒 BADGE FIRMATO — ' + b.event.toUpperCase(), 150, 342);
 
   var a = document.createElement('a');
   a.href = c.toDataURL('image/png');
@@ -425,39 +332,24 @@ function downloadBadge(idx) {
   a.click();
 }
 
-
-function downloadAllPNG() {
-  if (!allBadges.length) { alert('Nessun badge da scaricare.'); return; }
-  allBadges.forEach(function(b, idx) {
-    setTimeout(function() { downloadBadge(idx); }, idx * 400);
-  });
-}
-
 function exportCSV() {
   if (!allBadges.length) { alert('Genera prima i badge.'); return; }
-
-  // CSV contiene i payload firmati — lo scanner li usa per verificare
-  var rows = [['ID', 'Nome', 'Evento', 'Data', 'Giorno', 'Payload']];
+  var rows = [['ID', 'Nome', 'Evento', 'Data', 'Giorno', 'Ruolo', 'Payload']];
   allBadges.forEach(function(b) {
-    rows.push([b.id, b.name, b.event, b.date, b.day || 'Tutti', '"' + b.payload + '"']);
+    rows.push([b.id, b.name, b.event, b.date, b.day || '', b.role || '', b.payload]);
   });
-
   var csv = rows.map(function(r) {
-    return r.map(function(v, i) {
-      if (i === 5) return v; // payload already quoted
-      return '"' + String(v).replace(/"/g, '""') + '"';
-    }).join(',');
+    return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
   }).join('\n');
-
   var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'lista_' + (document.getElementById('eventName').value.trim() || 'evento').replace(/\s+/g,'_') + '.csv';
+  a.download = 'lista_' + (document.getElementById('eventName').value.trim() || 'evento').replace(/\s+/g, '_') + '.csv';
   a.click();
 }
 
 function clearAll() {
-  if (!confirm('Sei sicuro di voler azzerare tutti i badge generati?')) return;
+  if (!confirm('Azzerare tutti i badge generati?')) return;
   allBadges = [];
   document.getElementById('badgesGrid').innerHTML = '';
   document.getElementById('previewArea').style.display = 'none';
