@@ -279,8 +279,23 @@ async function generateBadges() {
     var id = 'P' + String(startIdx + i + 1).padStart(3, '0');
     var payloadObj = { id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal };
     var payloadStr = JSON.stringify(payloadObj);
-    var sig = await sign(payloadStr, secret);
-    var finalPayload = payloadStr + '|SIG:' + sig;
+    var qrMode = document.querySelector('input[name="qrMode"]:checked').value;
+    var finalPayload;
+    if (qrMode === 'readable') {
+      // Formato leggibile da qualsiasi app QR
+      finalPayload = [
+        'EVENTO: ' + eventVal,
+        dateVal  ? 'DATA: '   + dateVal  : '',
+        'NOME: '  + name,
+        roleVal  ? 'RUOLO: '  + roleVal  : '',
+        dayVal   ? 'GIORNO: ' + dayVal   : '',
+        'ID: '    + id
+      ].filter(function(l){ return l; }).join('
+');
+    } else {
+      var sig = await sign(payloadStr, secret);
+      finalPayload = payloadStr + '|SIG:' + sig;
+    }
     allBadges.push({ id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal, payload: finalPayload });
   }
 
