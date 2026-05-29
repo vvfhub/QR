@@ -90,49 +90,13 @@ header span { color: var(--muted); font-family: 'DM Mono', monospace; font-size:
 @media print {
   header, .card, #previewArea > .btn-row, .preview-bar { display: none !important; }
   #previewArea { display: flex !important; }
-  body { background: white; margin: 0; }
-
+  body { background: white; }
   .badges-grid {
     display: grid;
-    grid-template-columns: repeat(2, 7.5cm);
-    grid-auto-rows: 4.5cm;
-    gap: 4mm;
-    padding: 10mm;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6mm;
   }
-
-  .badge-card {
-    width: 7.5cm;
-    height: 4.5cm;
-    page-break-inside: avoid;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: row;
-    padding: 0;
-    background: #fdfaf4;
-  }
-
-  /* Colonna sinistra: testo */
-  .badge-left-print {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    padding: 3mm;
-    min-width: 0;
-  }
-
-  /* Colonna destra: QR occupa metà */
-  .badge-card canvas {
-    width: 4.2cm !important;
-    height: 4.2cm !important;
-    flex-shrink: 0;
-    margin: auto 2mm;
-    display: block;
-  }
-
-  .badge-name { font-size: 11pt; }
-  .badge-meta, .badge-day { font-size: 6pt; }
+  .badge-card { page-break-inside: avoid; border: 1px solid #ccc; }
   .secure-badge { display: none; }
 }
 </style>
@@ -369,143 +333,57 @@ function downloadBadge(idx) {
   var srcCanvas = document.querySelector('canvas[data-idx="' + idx + '"]');
   if (!srcCanvas) return;
 
-  // 7.5cm x 4.5cm @ 150dpi
-  var W = 443, H = 266;
-  var R = 12;   // border radius
-  var P = 14;   // padding
-
-  // QR: quadrato, altezza intera meno padding
-  var qrSize = H - P * 2;  // 238px
-  var qrX = P;
-
-  // Colonna testo
-  var tx = qrX + qrSize + P;  // 266
-  var tw = W - tx - P;         // 163px disponibili
-
   var c = document.createElement('canvas');
-  c.width = W; c.height = H;
+  c.width = 300; c.height = 380;
   var ctx = c.getContext('2d');
 
-  // ── SFONDO con angoli arrotondati ──
-  ctx.fillStyle = '#ffffff';
-  roundRect(ctx, 0, 0, W, H, R);
-  ctx.fill();
-  ctx.strokeStyle = '#bbbbbb';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
+  // Sfondo
+  ctx.fillStyle = '#fdfaf4';
+  ctx.fillRect(0, 0, 300, 380);
+  ctx.strokeStyle = '#c8b99a';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(4, 4, 292, 372);
 
-  // ── QR ──
-  ctx.drawImage(srcCanvas, qrX, P, qrSize, qrSize);
-
-  // ── TESTO DESTRA ──
-
-  // 1. Nome evento (bold, piccolo, in alto)
+  // Header scuro con nome evento
   ctx.fillStyle = '#1a1410';
-  ctx.font = 'bold 11px Arial, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  var evLines = wrapText(ctx, b.event, tw);
-  evLines.forEach(function(line, i) {
-    ctx.fillText(line, tx, P + i * 14);
-  });
+  ctx.fillRect(0, 0, 300, 38);
+  ctx.fillStyle = '#e8b84b';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  var header = (b.event + (b.date ? '  ·  ' + b.date : '')).toUpperCase();
+  ctx.fillText(header, 150, 24);
 
-  // Linea separatrice
-  var lineY = P + evLines.length * 14 + 4;
-  ctx.strokeStyle = '#dddddd';
+  // QR centrato
+  ctx.drawImage(srcCanvas, 75, 48, 150, 150);
+
+  // Nome partecipante
+  ctx.fillStyle = '#1a1410';
+  ctx.font = 'bold 20px serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(b.name, 150, 228);
+
+  // ID e giorno
+  ctx.fillStyle = '#8a7b65';
+  ctx.font = '11px monospace';
+  ctx.fillText(b.id + (b.day ? '  ·  ' + b.day.toUpperCase() : ''), 150, 248);
+
+  // Linea
+  ctx.strokeStyle = '#c8b99a';
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(tx, lineY);
-  ctx.lineTo(W - P, lineY);
+  ctx.moveTo(20, 264);
+  ctx.lineTo(280, 264);
   ctx.stroke();
 
-  // 2. Nome partecipante — bold grande
-  var nameY = lineY + 10;
-  ctx.fillStyle = '#111111';
-  ctx.font = 'bold 20px Georgia, serif';
-  ctx.textBaseline = 'top';
-
-  // Misura e adatta
-  var nameFit = fitText(ctx, b.name, tw, 20, 12, 'bold', 'Georgia, serif');
-  ctx.font = 'bold ' + nameFit.size + 'px Georgia, serif';
-  var nameLines = wrapText(ctx, b.name, tw);
-  nameLines.forEach(function(line, i) {
-    ctx.fillText(line, tx, nameY + i * (nameFit.size + 3));
-  });
-
-  // 3. Data e giorno sotto il nome
-  var metaY = nameY + nameLines.length * (nameFit.size + 3) + 10;
-  ctx.font = '10px Arial, sans-serif';
-  ctx.fillStyle = '#666666';
-  ctx.textBaseline = 'top';
-  if (b.date) {
-    ctx.fillText(b.date, tx, metaY);
-    metaY += 14;
-  }
-  if (b.day) {
-    ctx.fillStyle = '#c4922a';
-    ctx.font = 'bold 10px Arial, sans-serif';
-    ctx.fillText(b.day, tx, metaY);
-  }
-
-  // 4. ID in basso a destra, piccolissimo
-  ctx.font = '7px Arial, sans-serif';
-  ctx.fillStyle = '#cccccc';
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'bottom';
-  ctx.fillText(b.id, W - P, H - 5);
+  // Footer
+  ctx.fillStyle = '#8a7b65';
+  ctx.font = '9px monospace';
+  ctx.fillText('BADGE UFFICIALE — ' + b.event.toUpperCase(), 150, 280);
 
   var a = document.createElement('a');
   a.href = c.toDataURL('image/png');
   a.download = 'badge_' + b.name.replace(/\s+/g, '_') + '_' + b.id + '.png';
   a.click();
-}
-
-// Disegna rettangolo con angoli arrotondati
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-// Adatta il font size affinché il testo entri nella larghezza
-function fitText(ctx, text, maxW, startSize, minSize, weight, family) {
-  var size = startSize;
-  ctx.font = (weight || '') + ' ' + size + 'px ' + family;
-  while (size > minSize && ctx.measureText(text).width > maxW) {
-    size--;
-    ctx.font = (weight || '') + ' ' + size + 'px ' + family;
-  }
-  return { size: size };
-}
-
-// Spezza il testo in righe che entrano nella larghezza
-function wrapText(ctx, text, maxW) {
-  var words = text.split(' ');
-  var lines = [];
-  var line = '';
-  words.forEach(function(word) {
-    var test = line ? line + ' ' + word : word;
-    if (ctx.measureText(test).width <= maxW) {
-      line = test;
-    } else {
-      if (line) lines.push(line);
-      // Se anche la parola sola è troppo lunga, tronca
-      while (ctx.measureText(word).width > maxW && word.length > 1) {
-        word = word.slice(0, -1);
-      }
-      line = word;
-    }
-  });
-  if (line) lines.push(line);
-  return lines;
 }
 
 
