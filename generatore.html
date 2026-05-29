@@ -88,11 +88,52 @@ header span { color: var(--muted); font-family: 'DM Mono', monospace; font-size:
 }
 
 @media print {
-  header, .card:not(#previewCard), #previewArea > .btn-row, .preview-bar { display: none !important; }
-  .badges-grid { grid-template-columns: repeat(3, 1fr); gap: 8mm; }
-  .badge-card { page-break-inside: avoid; border: 1px solid #ccc; }
+  header, .card, #previewArea > .btn-row, .preview-bar { display: none !important; }
   #previewArea { display: flex !important; }
-  body { background: white; }
+  body { background: white; margin: 0; }
+
+  .badges-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 7.5cm);
+    grid-auto-rows: 4.5cm;
+    gap: 4mm;
+    padding: 10mm;
+  }
+
+  .badge-card {
+    width: 7.5cm;
+    height: 4.5cm;
+    page-break-inside: avoid;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: row;
+    padding: 0;
+    background: #fdfaf4;
+  }
+
+  /* Colonna sinistra: testo */
+  .badge-left-print {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 3mm;
+    min-width: 0;
+  }
+
+  /* Colonna destra: QR occupa metà */
+  .badge-card canvas {
+    width: 4.2cm !important;
+    height: 4.2cm !important;
+    flex-shrink: 0;
+    margin: auto 2mm;
+    display: block;
+  }
+
+  .badge-name { font-size: 11pt; }
+  .badge-meta, .badge-day { font-size: 6pt; }
+  .secure-badge { display: none; }
 }
 </style>
 </head>
@@ -328,31 +369,110 @@ function downloadBadge(idx) {
   var srcCanvas = document.querySelector('canvas[data-idx="' + idx + '"]');
   if (!srcCanvas) return;
 
+  // Badge: 7.5cm x 4.5cm @ 150dpi
+  // 7.5cm = 2.953in * 150 = 443px
+  // 4.5cm = 1.772in * 150 = 266px
+  var W = 443, H = 266;
+  var PAD = 8;
+
+  // QR occupa metà destra: da W/2 fino a W-PAD, centrato verticalmente
+  var qrSize = H - PAD * 2;           // altezza badge meno padding
+  var qrX = Math.round(W / 2) + 4;   // partenza colonna destra
+  var qrY = PAD;
+
+  // Colonna sinistra: da PAD a qrX - 8
+  var leftW = qrX - PAD - 8;
+
   var c = document.createElement('canvas');
-  c.width = 300; c.height = 380;
+  c.width = W; c.height = H;
   var ctx = c.getContext('2d');
 
-  ctx.fillStyle = '#fdfaf4'; ctx.fillRect(0, 0, 300, 380);
-  ctx.strokeStyle = '#c8b99a'; ctx.lineWidth = 2; ctx.strokeRect(3, 3, 294, 374);
+  // Sfondo
+  ctx.fillStyle = '#fdfaf4';
+  ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = '#1a1410'; ctx.fillRect(0, 0, 300, 38);
-  ctx.fillStyle = '#e8b84b'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
-  ctx.fillText((b.event + (b.date ? '  ·  ' + b.date : '')).toUpperCase(), 150, 24);
+  // Bordo
+  ctx.strokeStyle = '#c8b99a';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(2, 2, W - 4, H - 4);
 
-  ctx.drawImage(srcCanvas, 75, 48, 150, 150);
+  // Linea verticale divisoria
+  ctx.strokeStyle = '#e0d5c0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(qrX - 4, PAD + 6);
+  ctx.lineTo(qrX - 4, H - PAD - 6);
+  ctx.stroke();
 
-  ctx.fillStyle = '#1a1410'; ctx.font = 'bold 20px serif';
-  ctx.fillText(b.name, 150, 232);
+  // ── COLONNA SINISTRA ──
 
-  ctx.fillStyle = '#8a7b65'; ctx.font = '11px monospace';
-  ctx.fillText(b.id + (b.day ? '  ·  ' + b.day.toUpperCase() : ''), 150, 252);
+  // Striscia colorata in alto a sinistra
+  ctx.fillStyle = '#1a1410';
+  ctx.fillRect(PAD, PAD, leftW, 22);
 
-  ctx.strokeStyle = '#c8b99a'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(20, 268); ctx.lineTo(280, 268); ctx.stroke();
+  // Nome evento nella striscia
+  ctx.fillStyle = '#e8b84b';
+  ctx.font = 'bold 9px monospace';
+  ctx.textAlign = 'left';
+  var evText = b.event.toUpperCase();
+  // Tronca se troppo lungo
+  while (ctx.measureText(evText).width > leftW - 6 && evText.length > 3) {
+    evText = evText.slice(0, -1);
+  }
+  ctx.fillText(evText, PAD + 4, PAD + 14);
 
-  ctx.fillStyle = '#1e7b4b'; ctx.font = 'bold 9px monospace';
-  ctx.fillText('🔒 BADGE FIRMATO — ' + b.event.toUpperCase(), 150, 284);
+  // Data sotto la striscia
+  if (b.date) {
+    ctx.fillStyle = '#8a7b65';
+    ctx.font = '8px monospace';
+    ctx.fillText(b.date, PAD + 4, PAD + 34);
+  }
 
+  // Nome partecipante — grande, va a capo se necessario
+  ctx.fillStyle = '#1a1410';
+  ctx.textAlign = 'left';
+
+  var nameParts = b.name.split(' ');
+  var fontSize = 18;
+  ctx.font = 'bold ' + fontSize + 'px serif';
+
+  // Riduci font finché il nome entra
+  while (fontSize > 10) {
+    ctx.font = 'bold ' + fontSize + 'px serif';
+    var fits = nameParts.every(function(p) { return ctx.measureText(p).width <= leftW - 4; });
+    if (fits) break;
+    fontSize--;
+  }
+
+  // Scrivi nome su più righe (cognome / nome)
+  var nameY = PAD + 50;
+  var lineH = fontSize + 4;
+  nameParts.forEach(function(part) {
+    ctx.fillText(part, PAD + 4, nameY);
+    nameY += lineH;
+  });
+
+  // ID badge
+  ctx.fillStyle = '#8a7b65';
+  ctx.font = '8px monospace';
+  ctx.fillText(b.id, PAD + 4, H - PAD - 22);
+
+  // Giorno autorizzato
+  if (b.day) {
+    ctx.fillStyle = '#c4922a';
+    ctx.font = 'bold 8px monospace';
+    ctx.fillText(b.day.toUpperCase(), PAD + 4, H - PAD - 11);
+  }
+
+  // Lucchetto firmato
+  ctx.fillStyle = '#1e7b4b';
+  ctx.font = '7px monospace';
+  ctx.fillText('FIRMATO', PAD + 4, H - PAD);
+
+  // ── COLONNA DESTRA — QR ──
+  ctx.drawImage(srcCanvas, qrX, qrY, qrSize, qrSize);
+
+  // Download
   var a = document.createElement('a');
   a.href = c.toDataURL('image/png');
   a.download = 'badge_' + b.name.replace(/\s+/g, '_') + '_' + b.id + '.png';
