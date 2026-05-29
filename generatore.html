@@ -268,8 +268,9 @@ async function generateBadges() {
   var roleVal  = document.getElementById('role').value;
   var secret   = document.getElementById('secretKey').value.trim();
 
+  var qrModeCheck = document.querySelector('input[name="qrMode"]:checked').value;
   if (!eventVal) { alert('Inserisci il nome dell\'evento.'); return; }
-  if (!secret)   { alert('Inserisci la chiave segreta.'); return; }
+  if (qrModeCheck === 'secure' && !secret) { alert('Inserisci la chiave segreta per il QR sicuro.'); return; }
   if (!names.length) { alert('Inserisci almeno un nome.'); return; }
 
   var startIdx = allBadges.length;
@@ -329,7 +330,10 @@ function renderGrid() {
     dayEl.textContent = (b.day || 'Tutti i giorni') + (b.role ? ' · ' + b.role.toUpperCase() : '');
 
     var secEl = document.createElement('div');
-    secEl.innerHTML = '<span class="secure-badge">🔒 Firmato</span>';
+    var isSecure = b.payload.indexOf('|SIG:') > -1;
+    secEl.innerHTML = isSecure
+      ? '<span class="secure-badge">🔒 Firmato</span>'
+      : '<span class="secure-badge" style="background:var(--gold);color:#000;">👁 Leggibile</span>';
 
     card.appendChild(qrCanvas);
     card.appendChild(nameEl);
