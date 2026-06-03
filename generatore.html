@@ -66,8 +66,22 @@ header span { color: var(--muted); font-family: 'DM Mono', monospace; font-size:
 
 @media print {
   header, .card, #previewArea > .btn-row, .preview-bar { display: none !important; }
-  .badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; }
-  .badge-card { page-break-inside: avoid; border: 1px solid #ccc; }
+  .badges-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 80mm);
+    grid-auto-rows: 50mm;
+    gap: 4mm;
+    padding: 0;
+  }
+  .badge-card {
+    page-break-inside: avoid;
+    border: 0.5px solid #ccc;
+    border-radius: 2mm;
+    width: 80mm;
+    height: 50mm;
+    overflow: hidden;
+  }
+  .badge-card canvas { display: none !important; }
   #previewArea { display: flex !important; }
   body { background: white; }
 }
@@ -136,6 +150,11 @@ header span { color: var(--muted); font-family: 'DM Mono', monospace; font-size:
         <div class="field">
           <label>Ruolo (opzionale)</label>
           <input type="text" id="role" placeholder="es. Capitano, VIP, Staff…">
+        </div>
+        <div class="field" style="max-width:80px;">
+          <label>Colore</label>
+          <input type="color" id="badgeColor" value="#5DCAA5"
+            style="width:100%;height:42px;padding:2px;border:1.5px solid var(--border);border-radius:4px;background:var(--paper);cursor:pointer;">
         </div>
       </div>
       <div class="field">
@@ -210,6 +229,7 @@ async function generateBadges() {
   var dateVal  = document.getElementById('eventDate').value.trim();
   var dayVal   = document.getElementById('allowedDay').value;
   var roleVal  = document.getElementById('role').value.trim();
+  var colorVal = document.getElementById('badgeColor').value;
   var secret   = document.getElementById('secretKey').value.trim();
 
   if (!eventVal) { alert('Inserisci il nome dell\'evento.'); return; }
@@ -225,7 +245,7 @@ async function generateBadges() {
     var payloadStr = JSON.stringify(payloadObj);
     var sig = await sign(payloadStr, secret);
     var finalPayload = payloadStr + '|SIG:' + sig;
-    allBadges.push({ id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal, payload: finalPayload });
+    allBadges.push({ id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal, color: colorVal, payload: finalPayload });
   }
 
   renderGrid();
@@ -255,6 +275,7 @@ function renderGrid() {
 
     var dayEl = document.createElement('div');
     dayEl.className = 'badge-day';
+    dayEl.style.color = b.color || 'var(--gold)';
     dayEl.textContent = (b.day || 'Tutti i giorni') + (b.role ? ' · ' + b.role : '');
 
     var secEl = document.createElement('div');
@@ -282,49 +303,89 @@ function downloadBadge(idx) {
   var srcCanvas = document.querySelector('canvas[data-idx="' + idx + '"]');
   if (!srcCanvas) return;
 
+  // 80x50mm a 150dpi: 472x295px
+  var W = 472, H = 295;
+  var PAD = 14;
+  var STRIPE = 16;
+  var QR_SIZE = 130;
+  var accent = b.color || '#1D9E75';
+
   var c = document.createElement('canvas');
-  c.width = 300; c.height = 380;
+  c.width = W; c.height = H;
   var ctx = c.getContext('2d');
 
-  ctx.fillStyle = '#fdfaf4';
-  ctx.fillRect(0, 0, 300, 380);
-  ctx.strokeStyle = '#c8b99a';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(4, 4, 292, 372);
+  // Sfondo bianco
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = '#1a1410';
-  ctx.fillRect(0, 0, 300, 38);
-  ctx.fillStyle = '#e8b84b';
-  ctx.font = 'bold 11px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText((b.event + (b.date ? '  ·  ' + b.date : '')).toUpperCase(), 150, 24);
+  // Bordo sottile
+  ctx.strokeStyle = '#cccccc';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
 
-  ctx.drawImage(srcCanvas, 50, 44, 200, 200);
+  // Striscia colorata in cima
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, 0, W, STRIPE);
 
-  ctx.fillStyle = '#1a1410';
-  ctx.font = 'bold 20px serif';
-  ctx.fillText(b.name, 150, 272);
+  // ── TESTO a sinistra ──
+  var textW = W - QR_SIZE - PAD * 3; // larghezza zona testo
 
-  ctx.fillStyle = '#8a7b65';
-  ctx.font = '11px monospace';
-  ctx.fillText(b.id + (b.day ? '  ·  ' + b.day.toUpperCase() : ''), 150, 292);
+  // Nome evento
+  ctx.fillStyle = accent;
+  ctx.font = '500 10px Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  // Tronca se troppo lungo
+  var evText = b.event.toUpperCase();
+  while (ctx.measureText(evText).width > textW && evText.length > 3)
+    evText = evText.slice(0, -1);
+  ctx.fillText(evText, PAD, STRIPE + 10);
 
-  if (b.role) {
-    ctx.fillStyle = '#1a1410';
-    ctx.font = 'bold 13px monospace';
-    ctx.fillText(b.role.toUpperCase(), 150, 312);
+  // Data
+  if (b.date) {
+    ctx.font = '10px Arial, sans-serif';
+    ctx.fillStyle = '#888888';
+    ctx.fillText(b.date, PAD, STRIPE + 24);
   }
 
-  ctx.strokeStyle = '#c8b99a';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(20, 326);
-  ctx.lineTo(280, 326);
-  ctx.stroke();
+  // Nome partecipante — grande
+  ctx.fillStyle = '#1a2e1a';
+  ctx.textBaseline = 'top';
+  var nameSize = 26;
+  ctx.font = '500 ' + nameSize + 'px Georgia, serif';
+  while (ctx.measureText(b.name).width > textW + 20 && nameSize > 14) {
+    nameSize--;
+    ctx.font = '500 ' + nameSize + 'px Georgia, serif';
+  }
+  // Spezza su due righe se necessario
+  var nameParts = b.name.split(' ');
+  var nameY = STRIPE + 44;
+  if (nameParts.length >= 2 && ctx.measureText(b.name).width > textW) {
+    var mid = Math.ceil(nameParts.length / 2);
+    var line1 = nameParts.slice(0, mid).join(' ');
+    var line2 = nameParts.slice(mid).join(' ');
+    ctx.fillText(line1, PAD, nameY);
+    ctx.fillText(line2, PAD, nameY + nameSize + 2);
+    nameY += nameSize + 2;
+  } else {
+    ctx.fillText(b.name, PAD, nameY);
+  }
 
-  ctx.fillStyle = '#1e7b4b';
-  ctx.font = 'bold 9px monospace';
-  ctx.fillText('🔒 BADGE FIRMATO — ' + b.event.toUpperCase(), 150, 342);
+  // Ruolo
+  if (b.role) {
+    ctx.font = '500 10px Arial, sans-serif';
+    ctx.fillStyle = accent;
+    ctx.letterSpacing = '0.15em';
+    ctx.fillText(b.role.toUpperCase(), PAD, nameY + nameSize + 10);
+    ctx.letterSpacing = '0';
+  }
+
+
+
+  // ── QR in basso a destra ──
+  var qrX = W - QR_SIZE - PAD / 2;
+  var qrY = H - QR_SIZE - PAD / 2;
+  ctx.drawImage(srcCanvas, qrX, qrY, QR_SIZE, QR_SIZE);
 
   var a = document.createElement('a');
   a.href = c.toDataURL('image/png');
