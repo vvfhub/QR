@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generatore Badge QR</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lora:wght@400;700&family=Montserrat:wght@400;700&family=DM+Serif+Display&family=DM+Sans:wght@400;700&family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<style>
+:root {
+  --ink: #1a1410; --paper: #f5f0e8; --cream: #ede7d5; --gold: #c4922a;
+  --gold-light: #e8b84b; --green: #1e7b4b; --red: #c0392b;
+  --border: #c8b99a; --muted: #8a7b65; --white: #fdfaf4;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--paper); color: var(--ink); font-family: 'DM Sans', Arial, sans-serif; min-height: 100vh; }
+
+header { background: var(--ink); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+header h1 { color: var(--gold-light); font-size: 1rem; letter-spacing: 0.06em; font-family: monospace; }
+header span { color: var(--muted); font-family: monospace; font-size: 0.7rem; }
+
+.body { padding: 16px; display: flex; flex-direction: column; gap: 14px; max-width: 700px; margin: 0 auto; }
+
+.card { background: var(--white); border: 1.5px solid var(--border); border-radius: 6px; overflow: hidden; }
+.card-header { padding: 9px 14px; background: var(--ink); color: var(--gold-light); font-family: monospace; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.card-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+.field { display: flex; flex-direction: column; gap: 3px; }
+.field label { font-family: monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.field input, .field select, .field textarea {
+  padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 4px;
+  background: var(--paper); font-family: inherit; font-size: 0.82rem; color: var(--ink); outline: none;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--gold); }
+.field textarea { min-height: 100px; resize: vertical; line-height: 1.6; }
+.field-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.field-row .field { flex: 1; min-width: 120px; }
+
+.key-field label { color: var(--gold) !important; }
+.key-field input { border-color: var(--gold) !important; }
+
+/* STILE BADGE - layout a due colonne: controlli | preview */
+.style-layout { display: flex; gap: 16px; align-items: flex-start; }
+.style-controls { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.style-preview-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.style-preview-label { font-family: monospace; font-size: 0.62rem; color: var(--muted); text-align: center; text-transform: uppercase; letter-spacing: 0.06em; }
+#previewCanvas { border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+/* Riga controllo stile: etichetta | font select | color picker */
+.style-row { display: flex; align-items: center; gap: 8px; }
+.style-row .style-label { font-family: monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; width: 80px; flex-shrink: 0; }
+.style-row select { flex: 1; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 4px; background: var(--paper); font-size: 0.78rem; color: var(--ink); outline: none; }
+.style-row select:focus { border-color: var(--gold); }
+.style-row input[type=color] { width: 36px; height: 34px; padding: 2px; border: 1.5px solid var(--border); border-radius: 4px; cursor: pointer; flex-shrink: 0; }
+
+.btn { padding: 12px; border: none; border-radius: 4px; cursor: pointer; font-family: monospace; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; transition: all 0.15s; }
+.btn-primary { background: var(--ink); color: var(--gold-light); width: 100%; }
+.btn-primary:hover { background: #2d2620; }
+.btn-secondary { background: transparent; border: 1.5px solid var(--border); color: var(--ink); }
+.btn-secondary:hover { border-color: var(--ink); }
+.btn-green { background: var(--green); color: #fff; }
+.btn-row { display: flex; gap: 8px; }
+.btn-row .btn { flex: 1; }
+
+#previewArea { display: none; flex-direction: column; gap: 12px; }
+.preview-bar { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--green); border-radius: 4px; color: #fff; font-family: monospace; font-size: 0.72rem; }
+.badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.badge-card { background: var(--white); border: 1.5px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.badge-card:hover { border-color: var(--gold); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.badge-card canvas { width: 160px !important; height: 100px !important; display: block; margin: 4px auto; border-radius: 3px; }
+.badge-name-label { font-weight: 700; font-size: 0.78rem; line-height: 1.2; margin-top: 4px; }
+.badge-meta { font-family: monospace; font-size: 0.56rem; color: var(--muted); margin-top: 2px; }
+.secure-badge { display: inline-block; background: var(--green); color: #fff; font-family: monospace; font-size: 0.55rem; padding: 2px 6px; border-radius: 10px; margin-top: 3px; }
+
+@media (max-width: 520px) {
+  .style-layout { flex-direction: column; }
+  .style-preview-wrap { width: 100%; }
+  #previewCanvas { width: 100%; height: auto; }
+}
+
+@media print {
+  header, .card, #previewArea > .btn-row, .preview-bar { display: none !important; }
+  .badges-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .badge-card { page-break-inside: avoid; border: 0.5px solid #ccc; }
+  #previewArea { display: flex !important; }
+  body { background: white; }
+}
+</style>
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div id="gate" style="position:fixed;inset:0;background:#1a1410;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+  <div style="text-align:center;margin-bottom:8px;">
+    <div style="font-size:2rem;margin-bottom:8px;">🔒</div>
+    <div style="font-family:monospace;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:#e8b84b;">Area Amministratore</div>
+    <div style="font-family:monospace;font-size:0.62rem;color:#555;margin-top:4px;">Accesso riservato</div>
+  </div>
+  <input type="password" id="gateInput" placeholder="Password…" onkeydown="if(event.key==='Enter') checkGate()"
+    style="padding:12px 18px;border:1.5px solid #333;border-radius:4px;background:#111;color:#e8b84b;font-family:monospace;font-size:0.85rem;outline:none;width:240px;text-align:center;">
+  <button onclick="checkGate()" style="padding:10px 32px;background:#e8b84b;color:#1a1410;border:none;border-radius:4px;font-family:monospace;font-size:0.78rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">ENTRA</button>
+  <div id="gateErr" style="font-family:monospace;font-size:0.68rem;color:#c0392b;min-height:18px;"></div>
+</div>
+
+<header>
+  <h1>⊞ GENERATORE BADGE</h1>
+  <span>Solo uso amministratore</span>
+</header>
+
+<div class="body">
+
+  <!-- EVENTO -->
+  <div class="card">
+    <div class="card-header">① Dati Evento</div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Nome Evento</label>
+          <textarea id="eventName" placeholder="es. Congresso 2026&#10;Felici per sempre!" oninput="aggiornaPreview()" style="min-height:60px;resize:vertical;"></textarea>
+        </div>
+        <div class="field">
+          <label>Data</label>
+          <input type="text" id="eventDate" placeholder="es. 17/07/2026" oninput="aggiornaPreview()">
+        </div>
+      </div>
+      <div class="field key-field">
+        <label>🔑 Chiave Segreta</label>
+        <input type="password" id="secretKey" placeholder="Scegli una password robusta…">
+      </div>
+    </div>
+  </div>
+
+  <!-- STILE BADGE -->
+  <div class="card">
+    <div class="card-header">② Stile Badge — anteprima in tempo reale</div>
+    <div class="card-body">
+      <div class="style-layout">
+
+        <!-- Controlli stile -->
+        <div class="style-controls">
+
+          <div class="style-row">
+            <span class="style-label">Sfondo</span>
+            <select id="s_bg_font" onchange="aggiornaPreview()">
+              <option value="">—</option>
+            </select>
+            <input type="color" id="s_bg_color" value="#ffffff" oninput="aggiornaPreview()">
+          </div>
+
+          <div class="style-row">
+            <span class="style-label">Striscia</span>
+            <select id="s_stripe_font" onchange="aggiornaPreview()">
+              <option value="">—</option>
+            </select>
+            <input type="color" id="s_stripe_color" value="#1D9E75" oninput="aggiornaPreview()">
+          </div>
+
+          <div class="style-row">
+            <span class="style-label">Evento</span>
+            <select id="s_event_font" onchange="aggiornaPreview()">
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'DM Sans', sans-serif">DM Sans</option>
+              <option value="'Open Sans', sans-serif">Open Sans</option>
+              <option value="'Montserrat', sans-serif">Montserrat</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Playfair Display', serif">Playfair Display</option>
+              <option value="'Lora', serif">Lora</option>
+              <option value="'DM Serif Display', serif">DM Serif Display</option>
+            </select>
+            <input type="color" id="s_event_color" value="#1D9E75" oninput="aggiornaPreview()">
+          </div>
+
+          <div class="style-row">
+            <span class="style-label">Data</span>
+            <select id="s_date_font" onchange="aggiornaPreview()">
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'DM Sans', sans-serif">DM Sans</option>
+              <option value="'Open Sans', sans-serif">Open Sans</option>
+              <option value="'Montserrat', sans-serif">Montserrat</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Playfair Display', serif">Playfair Display</option>
+              <option value="'Lora', serif">Lora</option>
+              <option value="'DM Serif Display', serif">DM Serif Display</option>
+            </select>
+            <input type="color" id="s_date_color" value="#888888" oninput="aggiornaPreview()">
+          </div>
+
+          <div class="style-row">
+            <span class="style-label">Nome</span>
+            <select id="s_name_font" onchange="aggiornaPreview()">
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Playfair Display', serif">Playfair Display</option>
+              <option value="'Lora', serif">Lora</option>
+              <option value="'DM Serif Display', serif">DM Serif Display</option>
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'DM Sans', sans-serif">DM Sans</option>
+              <option value="'Open Sans', sans-serif">Open Sans</option>
+              <option value="'Montserrat', sans-serif">Montserrat</option>
+            </select>
+            <input type="color" id="s_name_color" value="#1a2e1a" oninput="aggiornaPreview()">
+          </div>
+
+          <div class="style-row">
+            <span class="style-label">Ruolo</span>
+            <select id="s_role_font" onchange="aggiornaPreview()">
+              <option value="Arial, sans-serif">Arial</option>
+              <option value="'DM Sans', sans-serif">DM Sans</option>
+              <option value="'Montserrat', sans-serif">Montserrat</option>
+              <option value="'Open Sans', sans-serif">Open Sans</option>
+              <option value="Georgia, serif">Georgia</option>
+              <option value="'Playfair Display', serif">Playfair Display</option>
+              <option value="'Lora', serif">Lora</option>
+            </select>
+            <input type="color" id="s_role_color" value="#1D9E75" oninput="aggiornaPreview()">
+          </div>
+
+        </div>
+
+        <!-- Preview live -->
+        <div class="style-preview-wrap">
+          <div class="style-preview-label">Anteprima badge</div>
+          <canvas id="previewCanvas" width="320" height="200"></canvas>
+          <div class="style-preview-label" style="margin-top:2px;">80 × 50 mm</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARTECIPANTI -->
+  <div class="card">
+    <div class="card-header">③ Partecipanti</div>
+    <div class="card-body">
+      <div class="field-row">
+        <div class="field">
+          <label>Giorno Autorizzato</label>
+          <select id="allowedDay">
+            <option value="">Tutti i giorni</option>
+            <option value="Lunedì">Lunedì</option>
+            <option value="Martedì">Martedì</option>
+            <option value="Mercoledì">Mercoledì</option>
+            <option value="Giovedì">Giovedì</option>
+            <option value="Venerdì">Venerdì</option>
+            <option value="Sabato">Sabato</option>
+            <option value="Domenica">Domenica</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Ruolo (opzionale)</label>
+          <input type="text" id="role" placeholder="es. Capitano, VIP…" oninput="aggiornaPreview()">
+        </div>
+      </div>
+      <div class="field">
+        <label>Nomi Partecipanti (uno per riga)</label>
+        <textarea id="nameList" placeholder="Mario Rossi&#10;Giulia Bianchi&#10;Luca Verdi&#10;…"></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="generateBadges()">⊞ GENERA BADGE QR</button>
+    </div>
+  </div>
+
+  <!-- PREVIEW GRIGLIA -->
+  <div id="previewArea">
+    <div class="preview-bar">
+      <span id="previewCount">0 badge</span>
+      <span style="opacity:0.8;font-size:0.62rem;">Clicca un badge per scaricarlo come PNG</span>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="stampaTutti()">🖨 Stampa tutti</button>
+      <button class="btn btn-green" onclick="exportCSV()">↓ Esporta lista TXT</button>
+      <button class="btn btn-secondary" onclick="clearAll()">✕ Azzera</button>
+    </div>
+    <div class="badges-grid" id="badgesGrid"></div>
+  </div>
+
+</div>
+
+<script>
+// ── GATE ─────────────────────────────────────────────────
+function checkGate() {
+  hashPassword(document.getElementById('gateInput').value).then(function(h) {
+    if (h === 'ca30c2adb9e7f6dc9497ca2c85919a7b733bc81bec3f378a6ec10944d00f5781') {
+      document.getElementById('gate').style.display = 'none';
+    } else {
+      document.getElementById('gateErr').textContent = 'Password errata';
+      document.getElementById('gateInput').value = '';
+      document.getElementById('gateInput').focus();
+      setTimeout(function() { document.getElementById('gateErr').textContent = ''; }, 2000);
+    }
+  });
+}
+
+async function hashPassword(pwd) {
+  var enc = new TextEncoder();
+  var buf = await crypto.subtle.digest('SHA-256', enc.encode(pwd));
+  return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+}
+
+// ── CRYPTO ────────────────────────────────────────────────
+async function getKey(secret) {
+  var enc = new TextEncoder();
+  return crypto.subtle.importKey('raw', enc.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+}
+
+async function sign(payload, secret) {
+  var enc = new TextEncoder();
+  var key = await getKey(secret);
+  var sig = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
+  return Array.from(new Uint8Array(sig)).map(function(b) {
+    return b.toString(16).padStart(2, '0');
+  }).join('');
+}
+
+// ── STATE ─────────────────────────────────────────────────
+var allBadges = [];
+
+// ── GENERATOR ─────────────────────────────────────────────
+async function generateBadges() {
+  var names = document.getElementById('nameList').value
+    .split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l; });
+  var eventVal = document.getElementById('eventName').value.trim();
+  var dateVal  = document.getElementById('eventDate').value.trim();
+  var dayVal   = document.getElementById('allowedDay').value;
+  var roleVal  = document.getElementById('role').value.trim();
+  var secret   = document.getElementById('secretKey').value.trim();
+
+  if (!eventVal) { alert('Inserisci il nome dell\'evento.'); return; }
+  if (!secret)   { alert('Inserisci la chiave segreta.'); return; }
+  if (!names.length) { alert('Inserisci almeno un nome.'); return; }
+
+  var startIdx = allBadges.length;
+
+  for (var i = 0; i < names.length; i++) {
+    var name = names[i];
+    var id = 'P' + String(startIdx + i + 1).padStart(3, '0');
+    var payloadObj = { id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal };
+    var payloadStr = JSON.stringify(payloadObj);
+    var sig = await sign(payloadStr, secret);
+    var finalPayload = payloadStr + '|SIG:' + sig;
+    allBadges.push({ id: id, name: name, event: eventVal, date: dateVal, day: dayVal, role: roleVal, stile: getStile(), payload: finalPayload });
+  }
+
+  renderGrid();
+  document.getElementById('nameList').value = '';
+}
+
+function renderGrid() {
+  var grid = document.getElementById('badgesGrid');
+  grid.innerHTML = '';
+
+  allBadges.forEach(function(b, idx) {
+    var card = document.createElement('div');
+    card.className = 'badge-card';
+
+    var qrCanvas = document.createElement('canvas');
+    qrCanvas.setAttribute('data-idx', idx);
+    new QRious({ element: qrCanvas, value: b.payload, size: 300,
+      foreground: '#1a1410', background: '#fdfaf4', level: 'M' });
+
+    var nameEl = document.createElement('div');
+    nameEl.className = 'badge-name';
+    nameEl.textContent = b.name;
+
+    var metaEl = document.createElement('div');
+    metaEl.className = 'badge-meta';
+    metaEl.textContent = b.event + (b.date ? ' · ' + b.date : '') + ' · ' + b.id;
+
+    var dayEl = document.createElement('div');
+    dayEl.className = 'badge-day';
+    dayEl.style.color = b.color || 'var(--gold)';
+    dayEl.textContent = (b.day || 'Tutti i giorni') + (b.role ? ' · ' + b.role : '');
+
+    var secEl = document.createElement('div');
+    secEl.innerHTML = '<span class="secure-badge">🔒 Firmato</span>';
+
+    card.appendChild(qrCanvas);
+    card.appendChild(nameEl);
+    card.appendChild(metaEl);
+    card.appendChild(dayEl);
+    card.appendChild(secEl);
+
+    (function(capturedIdx) {
+      card.onclick = function() { downloadBadge(capturedIdx); };
+    })(idx);
+
+    grid.appendChild(card);
+  });
+
+  document.getElementById('previewCount').textContent = allBadges.length + ' badge generati';
+  document.getElementById('previewArea').style.display = 'flex';
+}
+
+function downloadBadge(idx) {
+  var b = allBadges[idx];
+  var srcCanvas = document.querySelector('canvas[data-idx="' + idx + '"]');
+  if (!srcCanvas) return;
+
+  var c = document.createElement('canvas');
+  c.width = 472; c.height = 295;
+  var ctx = c.getContext('2d');
+
+  disegnaBadge(ctx, 472, 295, {
+    event: b.event, date: b.date, name: b.name, role: b.role,
+    qrCanvas: srcCanvas, payload: b.payload
+  }, b.stile);
+
+  var a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = 'badge_' + b.name.replace(/\s+/g, '_') + '.png';
+  a.click();
+}
+
+
+function stampaTutti() {
+  if (!allBadges.length) { alert('Genera prima i badge.'); return; }
+
+  var images = [];
+  var total = allBadges.length;
+  var done = 0;
+
+  allBadges.forEach(function(b, idx) {
+    var srcCanvas = document.querySelector('canvas[data-idx="' + idx + '"]');
+    if (!srcCanvas) { done++; return; }
+
+    var c = document.createElement('canvas');
+    c.width = 472; c.height = 295;
+    var ctx = c.getContext('2d');
+
+    disegnaBadge(ctx, 472, 295, {
+      event: b.event, date: b.date, name: b.name, role: b.role,
+      qrCanvas: srcCanvas, payload: b.payload
+    }, b.stile);
+
+    images[idx] = c.toDataURL('image/png');
+    done++;
+
+    if (done === total) {
+      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Stampa Badge</title>'
+        + '<style>'
+        + '@page { size: A4; margin: 8mm; }'
+        + '* { box-sizing: border-box; margin: 0; padding: 0; }'
+        + 'body { background: white; }'
+        + '.grid { display: flex; flex-wrap: wrap; gap: 4mm; padding: 0; align-content: flex-start; }'
+        + '.badge-img { width: 80mm !important; height: 50mm !important; min-width: 80mm; min-height: 50mm; max-width: 80mm; max-height: 50mm; display: block; object-fit: fill; border: 0.3px solid #ddd; border-radius: 2mm; flex-shrink: 0; }'
+        + '</style></head><body>'
+        + '<div class="grid">';
+      images.forEach(function(src) {
+        if (src) html += '<img class="badge-img" src="' + src + '">';
+      });
+      html += '</div><script>window.onload=function(){window.print();}</' + 'script></body></html>';
+      var w = window.open('', '_blank');
+      w.document.write(html);
+      w.document.close();
+    }
+  });
+}
+
+
+function exportCSV() {
+  if (!allBadges.length) { alert('Genera prima i badge.'); return; }
+  var rows = [['ID', 'Nome', 'Evento', 'Data', 'Giorno', 'Ruolo', 'Payload']];
+  allBadges.forEach(function(b) {
+    rows.push([b.id, b.name, (b.event || '').replace(/\n/g, '↵'), b.date, b.day || '', b.role || '', b.payload]);
+  });
+  var csv = rows.map(function(r) {
+    return r.join('§§');
+  }).join('\n');
+  var blob = new Blob([csv], { type: 'text/plain;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lista_' + (document.getElementById('eventName').value.trim() || 'evento').replace(/\s+/g, '_') + '.txt';
+  a.click();
+}
+
+function clearAll() {
+  if (!confirm('Azzerare tutti i badge generati?')) return;
+  allBadges = [];
+  document.getElementById('badgesGrid').innerHTML = '';
+  document.getElementById('previewArea').style.display = 'none';
+}
+
+
+// ── LIVE PREVIEW ──────────────────────────────────────────
+function getStile() {
+  return {
+    bgColor:     document.getElementById('s_bg_color').value,
+    stripeColor: document.getElementById('s_stripe_color').value,
+    eventFont:   document.getElementById('s_event_font').value,
+    eventColor:  document.getElementById('s_event_color').value,
+    dateFont:    document.getElementById('s_date_font').value,
+    dateColor:   document.getElementById('s_date_color').value,
+    nameFont:    document.getElementById('s_name_font').value,
+    nameColor:   document.getElementById('s_name_color').value,
+    roleFont:    document.getElementById('s_role_font').value,
+    roleColor:   document.getElementById('s_role_color').value,
+  };
+}
+
+function disegnaBadge(ctx, W, H, dati, stile) {
+  var PAD = Math.round(H * 0.047);
+  var STRIPE = Math.round(H * 0.054);
+  var QR_SIZE = Math.round(H * 0.80);
+
+  // Sfondo
+  ctx.fillStyle = stile.bgColor;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#cccccc';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, W-1, H-1);
+
+  // Striscia
+  ctx.fillStyle = stile.stripeColor;
+  ctx.fillRect(0, 0, W, STRIPE);
+
+  var textW = W - QR_SIZE - PAD * 3;
+  var scale = W / 472; // fattore scala rispetto al canvas originale
+
+  // Nome evento (multiriga)
+  var evSize = Math.round(30 * scale);
+  ctx.font = '500 ' + evSize + 'px ' + stile.eventFont;
+  ctx.fillStyle = stile.eventColor;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  var evLines = (dati.event || 'Nome Evento').split('\n').map(function(l){ return l.toUpperCase(); });
+  var evY = STRIPE + Math.round(10 * scale);
+  evLines.forEach(function(line) {
+    while (ctx.measureText(line).width > textW && line.length > 3)
+      line = line.slice(0, -1);
+    ctx.fillText(line, PAD, evY);
+    evY += Math.round(evSize * 1.2);
+  });
+
+  // Data — in alto a destra dentro la striscia
+  if (dati.date) {
+    var dtSize = Math.round(11 * scale);
+    ctx.font = '500 ' + dtSize + 'px ' + stile.dateFont;
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(dati.date, W - PAD, STRIPE / 2);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+  }
+
+  // Nome
+  ctx.fillStyle = stile.nameColor;
+  ctx.textBaseline = 'top';
+  var nameSize = Math.round(38 * scale);
+  var minSize  = Math.round(20 * scale);
+  ctx.font = '500 ' + nameSize + 'px ' + stile.nameFont;
+  while (ctx.measureText(dati.name || 'Mario Rossi').width > textW + 20 && nameSize > minSize) {
+    nameSize--;
+    ctx.font = '500 ' + nameSize + 'px ' + stile.nameFont;
+  }
+  var nameY = evY + Math.round(10 * scale);
+  var parts = (dati.name || 'Mario Rossi').split(' ');
+  if (parts.length >= 2 && ctx.measureText(dati.name || 'Mario Rossi').width > textW) {
+    var mid = Math.ceil(parts.length / 2);
+    ctx.fillText(parts.slice(0,mid).join(' '), PAD, nameY);
+    ctx.fillText(parts.slice(mid).join(' '), PAD, nameY + nameSize + 2);
+    nameY += nameSize + 2;
+  } else {
+    ctx.fillText(dati.name || 'Mario Rossi', PAD, nameY);
+  }
+
+  // Ruolo
+  if (dati.role) {
+    var rlSize = Math.round(30 * scale);
+    ctx.font = '700 ' + rlSize + 'px ' + stile.roleFont;
+    ctx.fillStyle = stile.roleColor;
+    ctx.fillText(dati.role.toUpperCase(), PAD, nameY + nameSize + Math.round(12 * scale));
+  }
+
+  // QR placeholder (nella preview) o reale (nel download)
+  if (dati.qrCanvas || dati.payload) {
+    var qrX = W - QR_SIZE - Math.round(PAD / 2);
+    var qrY = H - QR_SIZE - Math.round(PAD / 2);
+    if (dati.payload && typeof QRious !== 'undefined') {
+      // Rigenera QR fresco alla dimensione corretta
+      var freshCanvas = document.createElement('canvas');
+      new QRious({ element: freshCanvas, value: dati.payload,
+        size: QR_SIZE * 2, foreground: '#000000', background: '#ffffff', level: 'M' });
+      ctx.drawImage(freshCanvas, qrX, qrY, QR_SIZE, QR_SIZE);
+    } else if (dati.qrCanvas) {
+      ctx.drawImage(dati.qrCanvas, qrX, qrY, QR_SIZE, QR_SIZE);
+    }
+  } else {
+    // Placeholder QR a scacchi
+    var qrX = W - QR_SIZE - Math.round(PAD / 2);
+    var qrY = H - QR_SIZE - Math.round(PAD / 2);
+    var cell = Math.round(QR_SIZE / 7);
+    var pattern = [[1,1,1,1,1,1,1],[1,0,0,0,0,0,1],[1,0,1,1,1,0,1],[1,0,1,0,1,0,1],[1,0,1,1,1,0,1],[1,0,0,0,0,0,1],[1,1,1,1,1,1,1]];
+    for (var r=0; r<7; r++) for (var c=0; c<7; c++) {
+      ctx.fillStyle = pattern[r][c] ? '#1a2e1a' : '#ffffff';
+      ctx.fillRect(qrX + c*cell, qrY + r*cell, cell, cell);
+    }
+  }
+}
+
+function aggiornaPreview() {
+  var canvas = document.getElementById('previewCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var stile = getStile();
+  var dati = {
+    event: document.getElementById('eventName').value || 'Nome Evento',
+    date:  document.getElementById('eventDate').value || '17/07/2026',
+    name:  'Mario Rossi',
+    role:  document.getElementById('role').value || 'Capitano',
+    qrCanvas: null
+  };
+  disegnaBadge(ctx, canvas.width, canvas.height, dati, stile);
+}
+
+// Aggiorna la preview all'avvio
+window.addEventListener('load', function() {
+  // Attendi caricamento font Google
+  if (document.fonts) {
+    document.fonts.ready.then(aggiornaPreview);
+  } else {
+    setTimeout(aggiornaPreview, 500);
+  }
+});
+
+</script>
+</body>
+</html>
